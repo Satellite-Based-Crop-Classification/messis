@@ -1,0 +1,6 @@
+[submodule "data"]
+	path = data
+	url = https://github.com/Satellite-Based-Crop-Classification/data/
+[submodule "model"]
+	path = model
+	url = https://github.com/Satellite-Based-Crop-Classification/model
