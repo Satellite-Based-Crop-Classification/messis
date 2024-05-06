@@ -131,24 +131,29 @@ stages:
     deps:
     - path: calculate_dataset_stats.ipynb
       hash: md5
-      md5: 703693d6529e2770a6e791db14045e50
-      size: 4478
+      md5: 159538a9f2b5e0f8b06ab59c3d7c4e6f
+      size: 5076
     - path: data/chips
       hash: md5
       md5: b6f2973498a4ef51a88a331663993b58.dir
       size: 885699796
       nfiles: 692
+    - path: data/labels_hierarchy.tif
+      hash: md5
+      md5: 92d349d792ad7e2d5370791a32a76ae6
+      size: 78674292
     params:
       params.yaml:
         number_of_bands: 6
         number_of_folds: 5
         paths.chips: data/chips
+        paths.labels_hierarchy: data/labels_hierarchy.tif
         timespans.number_of_timespans: 3
     outs:
     - path: data/chips_fold_stats.yaml
       hash: md5
-      md5: 7c600e487536155b98011610840fdb75
-      size: 1735
+      md5: 52fa2586fab508f03ddeded681b2e0c2
+      size: 1801
   download-prithvi-base-model:
     cmd: papermill download_prithvi_100M.ipynb download_prithvi_100M.output.ipynb
       && rm download_prithvi_100M.output.ipynb
