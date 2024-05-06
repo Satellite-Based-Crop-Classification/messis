@@ -8,6 +8,7 @@ paths:
   chips: data/chips
   chips_fold_stats: data/chips_fold_stats.yaml
   satellite: data/satellite
+  models: prithvi/models
   labels: data/labels.tif
   labels_hierarchy: data/labels_hierarchy.tif
   field_ids: data/field_ids.tif

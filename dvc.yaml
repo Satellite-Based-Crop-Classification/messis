@@ -59,12 +59,23 @@ stages:
     deps:
     - calculate_dataset_stats.ipynb
     - data/chips
+    - data/labels_hierarchy.tif
     params:
-    - paths.chips
+    - paths
+      - chips
+      - labels_hierarchy
     - timespans.number_of_timespans
     - number_of_bands
     - number_of_folds
     outs:
     - data/chips_fold_stats.yaml
   
+  download-prithvi-base-model:
+    cmd: papermill download_prithvi_100M.ipynb download_prithvi_100M.output.ipynb && rm download_prithvi_100M.output.ipynb
+    deps:
+    - download_prithvi_100M.ipynb
+    outs:
+    - prithvi/models/Prithvi_100M.pt
+
   # train-model:
+    # deps: download-prithvi-base-model
