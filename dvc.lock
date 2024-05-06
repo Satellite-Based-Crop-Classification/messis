@@ -1,0 +1,151 @@
+schema: '2.0'
+stages:
+  download-satellite-data:
+    cmd: papermill download_satellite_data.ipynb download_satellite_data.output.ipynb
+      && rm download_satellite_data.output.ipynb
+    deps:
+    - path: download_satellite_data.ipynb
+      hash: md5
+      md5: 017adbcc3bc52ff5aee3901a7f71db63
+      size: 32744
+    params:
+      params.yaml:
+        paths.satellite: data/satellite
+        search_dates: 2019-03-01T00:00:00.000Z/2019-10-01T00:00:00.000Z
+        zueri_crop.bbox:
+        - 8.364
+        - 47.24
+        - 9.0405
+        - 47.69894
+    outs:
+    - path: data/satellite
+      hash: md5
+      md5: 067d6cec62d584e27c7cc001649ef10b.dir
+      size: 714197897
+      nfiles: 194
+  rasterize:
+    cmd: papermill rasterize_labels.ipynb rasterize_labels.output.ipynb && rm rasterize_labels.output.ipynb
+    deps:
+    - path: data/TG_2019_Nutzungsflaechen_2019.gpkg
+      hash: md5
+      md5: e3f957fdda235db7f7ebebd44afdb77b
+      size: 52637696
+    - path: data/ZH_2019_LW_NUTZUNGSFLAECHEN_F.dbf
+      hash: md5
+      md5: 44cb1a911f2da61101f5a8a3f375b955
+      size: 69359582
+    - path: data/ZH_2019_LW_NUTZUNGSFLAECHEN_F.prj
+      hash: md5
+      md5: 313304cd209164f8f1694217325cad38
+      size: 472
+    - path: data/ZH_2019_LW_NUTZUNGSFLAECHEN_F.shp
+      hash: md5
+      md5: 899948e63250e6a0606d27d4a8c5218d
+      size: 74599628
+    - path: data/ZH_2019_LW_NUTZUNGSFLAECHEN_F.shx
+      hash: md5
+      md5: a2b42dbb531394feb196ebf81e551e73
+      size: 817284
+    - path: data/georef-switzerland-kanton@public.geojson
+      hash: md5
+      md5: c6ca8fd5486358688668668f44727240
+      size: 3134206
+    - path: data/labels_hierarchy.csv
+      hash: md5
+      md5: 6c5626388f82bf7734048a9e35d39bcf
+      size: 5970
+    - path: data/satellite
+      hash: md5
+      md5: 067d6cec62d584e27c7cc001649ef10b.dir
+      size: 714197897
+      nfiles: 194
+    - path: rasterize_labels.ipynb
+      hash: md5
+      md5: cf7e3c47c430d7b07d9061a5a43c9dfa
+      size: 5191030
+    params:
+      params.yaml:
+        max_cloud_cover: 5
+        paths.field_ids: data/field_ids.tif
+        paths.labels: data/labels.tif
+        paths.labels_hierarchy: data/labels_hierarchy.tif
+        paths.satellite: data/satellite
+        zueri_crop.bbox:
+        - 8.364
+        - 47.24
+        - 9.0405
+        - 47.69894
+    outs:
+    - path: data/field_ids.tif
+      hash: md5
+      md5: db671ed210358ab703e5984862cbffd3
+      size: 104888680
+    - path: data/labels.tif
+      hash: md5
+      md5: b1d35f4be4922ef210a195605cb3a525
+      size: 26245480
+    - path: data/labels_hierarchy.tif
+      hash: md5
+      md5: 92d349d792ad7e2d5370791a32a76ae6
+      size: 78674292
+  prepare-dataset:
+    cmd: papermill prepare_dataset.ipynb prepare_dataset.output.ipynb && rm prepare_dataset.output.ipynb
+    deps:
+    - path: data/labels_hierarchy.tif
+      hash: md5
+      md5: 92d349d792ad7e2d5370791a32a76ae6
+      size: 78674292
+    - path: data/satellite
+      hash: md5
+      md5: 067d6cec62d584e27c7cc001649ef10b.dir
+      size: 714197897
+      nfiles: 194
+    - path: prepare_dataset.ipynb
+      hash: md5
+      md5: ba8908f7365303044a0e4a9bb134f709
+      size: 6007424
+    params:
+      params.yaml:
+        chip_size: 256
+        number_of_folds: 5
+        paths.field_ids: data/field_ids.tif
+        paths.labels: data/labels.tif
+        paths.labels_hierarchy: data/labels_hierarchy.tif
+        paths.satellite: data/satellite
+        timespans.end: '2019-10-01'
+        timespans.number_of_timespans: 3
+        timespans.start: '2019-03-01'
+    outs:
+    - path: data/chips
+      hash: md5
+      md5: b6f2973498a4ef51a88a331663993b58.dir
+      size: 885699796
+      nfiles: 692
+    - path: data/stacked_features.tif
+      hash: md5
+      md5: 1d3a1b0eee2a26926ad9b5b49c961d13
+      size: 943759838
+  calculate-dataset-stats:
+    cmd: papermill calculate_dataset_stats.ipynb calculate_dataset_stats.output.ipynb
+      && rm calculate_dataset_stats.output.ipynb
+    deps:
+    - path: calculate_dataset_stats.ipynb
+      hash: md5
+      md5: 703693d6529e2770a6e791db14045e50
+      size: 4478
+    - path: data/chips
+      hash: md5
+      md5: b6f2973498a4ef51a88a331663993b58.dir
+      size: 885699796
+      nfiles: 692
+    params:
+      params.yaml:
+        number_of_bands: 6
+        number_of_folds: 5
+        paths.chips: data/chips
+        timespans.number_of_timespans: 3
+    outs:
+    - path: data/chips_fold_stats.yaml
+      hash: md5
+      md5: 7c600e487536155b98011610840fdb75
+      size: 1735

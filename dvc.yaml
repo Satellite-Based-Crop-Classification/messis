@@ -1,0 +1,70 @@
+stages:
+  download-satellite-data:
+    cmd: papermill download_satellite_data.ipynb download_satellite_data.output.ipynb && rm download_satellite_data.output.ipynb
+    deps:
+    - download_satellite_data.ipynb
+    params:
+    - paths.satellite
+    - zueri_crop.bbox
+    - search_dates
+    outs:
+    - data/satellite
+
+  rasterize:
+    cmd: papermill rasterize_labels.ipynb rasterize_labels.output.ipynb && rm rasterize_labels.output.ipynb
+    deps:
+    - rasterize_labels.ipynb
+    - data/ZH_2019_LW_NUTZUNGSFLAECHEN_F.dbf
+    - data/ZH_2019_LW_NUTZUNGSFLAECHEN_F.prj
+    - data/ZH_2019_LW_NUTZUNGSFLAECHEN_F.shp
+    - data/ZH_2019_LW_NUTZUNGSFLAECHEN_F.shx
+    - data/TG_2019_Nutzungsflaechen_2019.gpkg
+    - data/georef-switzerland-kanton@public.geojson
+    - data/satellite
+    - data/labels_hierarchy.csv
+    params:
+    - zueri_crop.bbox
+    - max_cloud_cover
+    - paths.satellite
+    - paths.labels
+    - paths.labels_hierarchy
+    - paths.field_ids
+    outs:
+    - data/labels.tif
+    - data/labels_hierarchy.tif
+    - data/field_ids.tif
+
+  prepare-dataset:
+    cmd: papermill prepare_dataset.ipynb prepare_dataset.output.ipynb && rm prepare_dataset.output.ipynb
+    deps:
+    - prepare_dataset.ipynb
+    - data/satellite
+    - data/labels_hierarchy.tif
+    params:
+    - chip_size
+    - number_of_folds
+    - timespans.number_of_timespans
+    - timespans.start
+    - timespans.end
+    - paths.satellite
+    - paths.labels
+    - paths.labels_hierarchy
+    - paths.field_ids
+    outs:
+    - data/chips
+    - data/stacked_features.tif
+
+  calculate-dataset-stats:
+    cmd: papermill calculate_dataset_stats.ipynb calculate_dataset_stats.output.ipynb && rm calculate_dataset_stats.output.ipynb
+    deps:
+    - calculate_dataset_stats.ipynb
+    - data/chips
+    params:
+    - paths.chips
+    - timespans.number_of_timespans
+    - number_of_bands
+    - number_of_folds
+    outs:
+    - data/chips_fold_stats.yaml
+  
+  # train-model:

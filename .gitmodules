@@ -1,6 +1,0 @@
-[submodule "data"]
-	path = data
-	url = https://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@github.com/Satellite-Based-Crop-Classification/data/
-[submodule "model"]
-	path = model
-	url = https://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@github.com/Satellite-Based-Crop-Classification/model
