@@ -1,0 +1,5 @@
+outs:
+- md5: c6ca8fd5486358688668668f44727240
+  size: 3134206
+  hash: md5
+  path: georef-switzerland-kanton@public.geojson

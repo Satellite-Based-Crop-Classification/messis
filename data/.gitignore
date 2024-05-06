@@ -1,0 +1,17 @@
+/georef-switzerland-kanton@public.geojson
+/TG_2019_Nutzungsflaechen_2019.gpkg
+/ZH_2019_LW_NUTZUNGSFLAECHEN_F.dbf
+/ZH_2019_LW_NUTZUNGSFLAECHEN_F.prj
+/ZH_2019_LW_NUTZUNGSFLAECHEN_F.shp
+/ZH_2019_LW_NUTZUNGSFLAECHEN_F.shx
+/labels_hierarchy.csv
+/labels_new_hierarchy.csv
+
+/satellite
+/chips
+
+/labels_hierarchy.tif
+/stacked_features.tif
+/field_ids.tif
+/labels.tif
+/chips_fold_stats.yaml
