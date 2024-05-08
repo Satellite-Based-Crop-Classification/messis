@@ -2,7 +2,7 @@
 #SBATCH --time=00:15:00
 #SBATCH --cpus-per-task=2
 #SBATCH --mem=16G
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --partition=performance
 #SBATCH --ntasks-per-node=1
 #SBATCH --out=slurm/logs/messis-lightning.ipynb_out.txt
