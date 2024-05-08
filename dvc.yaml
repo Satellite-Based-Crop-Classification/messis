@@ -61,9 +61,8 @@ stages:
     - data/chips
     - data/labels_hierarchy.tif
     params:
-    - paths
-      - chips
-      - labels_hierarchy
+    - paths.chips
+    - paths.labels_hierarchy
     - timespans.number_of_timespans
     - number_of_bands
     - number_of_folds
