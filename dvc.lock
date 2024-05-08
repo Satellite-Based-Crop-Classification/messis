@@ -133,6 +133,8 @@ stages:
       hash: md5
       md5: 560fefbd93e56f3cf7b6953029cb9e91
       size: 5143
+      md5: 560fefbd93e56f3cf7b6953029cb9e91
+      size: 5143
     - path: data/chips
       hash: md5
       md5: b6f2973498a4ef51a88a331663993b58.dir
@@ -142,11 +144,16 @@ stages:
       hash: md5
       md5: 92d349d792ad7e2d5370791a32a76ae6
       size: 78674292
+    - path: data/labels_hierarchy.tif
+      hash: md5
+      md5: 92d349d792ad7e2d5370791a32a76ae6
+      size: 78674292
     params:
       params.yaml:
         number_of_bands: 6
         number_of_folds: 5
         paths.chips: data/chips
+        paths.labels_hierarchy: data/labels_hierarchy.tif
         paths.labels_hierarchy: data/labels_hierarchy.tif
         timespans.number_of_timespans: 3
     outs:
