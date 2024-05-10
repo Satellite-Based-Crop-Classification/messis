@@ -329,7 +329,6 @@ class Messis(pl.LightningModule):
         # Calculate metrics
         acc_tier1, acc_tier2, acc_tier3, acc_tier3_refined, combined_acc = self.__calculate_accuracies(outputs, targets)
         prf_metrics = self.__calculate_precision_recall_f1(outputs, targets)
-        self.__update_confusion_matrices(outputs, targets)
 
         # Log all metrics in one go
         metrics = {
@@ -397,31 +396,21 @@ class Messis(pl.LightningModule):
             'recall_tier3_refined': recall_tier3_refined,
             'f1_tier3_refined': f1_tier3_refined
         }
-    
-    # def __update_confusion_matrices(self, outputs, targets):
-    #     outputs_tier1, outputs_tier2, outputs_tier3, outputs_tier3_refined = outputs
-    #     targets_tier1, targets_tier2, targets_tier3 = targets
-
-    #     preds_tier1 = torch.softmax(outputs_tier1, dim=1).argmax(dim=1)
-    #     preds_tier2 = torch.softmax(outputs_tier2, dim=1).argmax(dim=1)
-    #     preds_tier3 = torch.softmax(outputs_tier3, dim=1).argmax(dim=1)
-    #     preds_tier3_refined = torch.softmax(outputs_tier3_refined, dim=1).argmax(dim=1)
-
-    #     self.confmat_tier1(preds_tier1, targets_tier1)
-    #     self.confmat_tier2(preds_tier2, targets_tier2)
-    #     self.confmat_tier3(preds_tier3, targets_tier3)
-    #     self.confmat_tier3_refined(preds_tier3_refined, targets_tier3)
         
 class LogConfusionMatrix(pl.Callback):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        self.update_confusion_matrices(outputs, batch[1], pl_module)  # batch[1] is assumed to be targets
+        targets = batch[1]
+        self.update_confusion_matrices(outputs, targets, pl_module)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        self.update_confusion_matrices(outputs, batch[1], pl_module)
+        targets = batch[1]
+        self.update_confusion_matrices(outputs, targets, pl_module)
 
     def update_confusion_matrices(self, outputs, targets, pl_module):
         preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
         tiers = ['tier1', 'tier2', 'tier3', 'tier3_refined']
+        target_tier1, target_tier2, target_tier3 = targets
+        targets = [target_tier1, target_tier2, target_tier3, target_tier3]
         for pred, target, tier in zip(preds, targets, tiers):
             getattr(pl_module, f'confmat_{tier}')(pred, target)
 
@@ -435,30 +424,24 @@ class LogConfusionMatrix(pl.Callback):
         self.log_confusion_matrices(trainer, pl_module, 'val')
         self.reset_confusion_matrices(pl_module)
 
-    def log_confusion_matrices(self, trainer, pl_module, phase):
+    def log_and_reset_confusion_matrices(self, trainer, pl_module, phase):
         matrices = {
             'tier1': pl_module.confmat_tier1.compute(),
             'tier2': pl_module.confmat_tier2.compute(),
             'tier3': pl_module.confmat_tier3.compute(),
             'tier3_refined': pl_module.confmat_tier3_refined.compute()
         }
-
         for tier, matrix in matrices.items():
-            class_names = [f"Class {i}" for i in range(matrix.size(0))]
-            preds, y_true = self.prepare_matrix_data(matrix)
-
-            # Log to W&B via the Lightning logger
             trainer.logger.experiment.log({
-                f"{phase}_{tier}_confusion_matrix": wandb.plot.confusion_matrix(
-                    probs=None, preds=preds, y_true=y_true, class_names=class_names)
+                f"{phase}_{tier}_confusion_matrix": self.create_wandb_confusion_matrix(matrix)
             })
+            getattr(pl_module, f'confmat_{tier}').reset()
 
-    def reset_confusion_matrices(self, pl_module):
-        # Reset each tier's confusion matrix
-        pl_module.confmat_tier1.reset()
-        pl_module.confmat_tier2.reset()
-        pl_module.confmat_tier3.reset()
-        pl_module.confmat_tier3_refined.reset()
+    @staticmethod
+    def create_wandb_confusion_matrix(matrix):
+        class_names = [f"Class {i}" for i in range(matrix.size(0))]
+        preds, y_true = LogConfusionMatrix.prepare_matrix_data(matrix)
+        return wandb.plot.confusion_matrix(probs=None, preds=preds, y_true=y_true, class_names=class_names)
 
     @staticmethod
     def prepare_matrix_data(matrix):
