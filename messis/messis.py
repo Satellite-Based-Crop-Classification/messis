@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 import torchmetrics
+import wandb
 
 from messis.prithvi import TemporalViTEncoder, ConvTransformerTokensToEmbeddingNeck
 
@@ -328,6 +329,7 @@ class Messis(pl.LightningModule):
         # Calculate metrics
         acc_tier1, acc_tier2, acc_tier3, acc_tier3_refined, combined_acc = self.__calculate_accuracies(outputs, targets)
         prf_metrics = self.__calculate_precision_recall_f1(outputs, targets)
+        self.__update_confusion_matrices(outputs, targets)
 
         # Log all metrics in one go
         metrics = {
@@ -395,3 +397,75 @@ class Messis(pl.LightningModule):
             'recall_tier3_refined': recall_tier3_refined,
             'f1_tier3_refined': f1_tier3_refined
         }
+    
+    # def __update_confusion_matrices(self, outputs, targets):
+    #     outputs_tier1, outputs_tier2, outputs_tier3, outputs_tier3_refined = outputs
+    #     targets_tier1, targets_tier2, targets_tier3 = targets
+
+    #     preds_tier1 = torch.softmax(outputs_tier1, dim=1).argmax(dim=1)
+    #     preds_tier2 = torch.softmax(outputs_tier2, dim=1).argmax(dim=1)
+    #     preds_tier3 = torch.softmax(outputs_tier3, dim=1).argmax(dim=1)
+    #     preds_tier3_refined = torch.softmax(outputs_tier3_refined, dim=1).argmax(dim=1)
+
+    #     self.confmat_tier1(preds_tier1, targets_tier1)
+    #     self.confmat_tier2(preds_tier2, targets_tier2)
+    #     self.confmat_tier3(preds_tier3, targets_tier3)
+    #     self.confmat_tier3_refined(preds_tier3_refined, targets_tier3)
+        
+class LogConfusionMatrix(pl.Callback):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        self.update_confusion_matrices(outputs, batch[1], pl_module)  # batch[1] is assumed to be targets
+
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        self.update_confusion_matrices(outputs, batch[1], pl_module)
+
+    def update_confusion_matrices(self, outputs, targets, pl_module):
+        preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
+        tiers = ['tier1', 'tier2', 'tier3', 'tier3_refined']
+        for pred, target, tier in zip(preds, targets, tiers):
+            getattr(pl_module, f'confmat_{tier}')(pred, target)
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        # Log and then reset the confusion matrices after training epoch
+        self.log_confusion_matrices(trainer, pl_module, 'train')
+        self.reset_confusion_matrices(pl_module)
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        # Log and then reset the confusion matrices after validation epoch
+        self.log_confusion_matrices(trainer, pl_module, 'val')
+        self.reset_confusion_matrices(pl_module)
+
+    def log_confusion_matrices(self, trainer, pl_module, phase):
+        matrices = {
+            'tier1': pl_module.confmat_tier1.compute(),
+            'tier2': pl_module.confmat_tier2.compute(),
+            'tier3': pl_module.confmat_tier3.compute(),
+            'tier3_refined': pl_module.confmat_tier3_refined.compute()
+        }
+
+        for tier, matrix in matrices.items():
+            class_names = [f"Class {i}" for i in range(matrix.size(0))]
+            preds, y_true = self.prepare_matrix_data(matrix)
+
+            # Log to W&B via the Lightning logger
+            trainer.logger.experiment.log({
+                f"{phase}_{tier}_confusion_matrix": wandb.plot.confusion_matrix(
+                    probs=None, preds=preds, y_true=y_true, class_names=class_names)
+            })
+
+    def reset_confusion_matrices(self, pl_module):
+        # Reset each tier's confusion matrix
+        pl_module.confmat_tier1.reset()
+        pl_module.confmat_tier2.reset()
+        pl_module.confmat_tier3.reset()
+        pl_module.confmat_tier3_refined.reset()
+
+    @staticmethod
+    def prepare_matrix_data(matrix):
+        preds, y_true = [], []
+        for i in range(len(matrix)):
+            for j in range(len(matrix[i])):
+                count = int(matrix[i][j])
+                preds.extend([j] * count)
+                y_true.extend([i] * count)
+        return preds, y_true
