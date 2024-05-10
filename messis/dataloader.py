@@ -124,9 +124,9 @@ class GeospatialDataset(Dataset):
         if self.transform_mask is not None:
             mask = self.transform_mask(mask)
 
-        targets_tier1 = mask[0, :, :]
-        targets_tier2 = mask[1, :, :]
-        targets_tier3 = mask[2, :, :]
+        targets_tier1 = mask[0, :, :].type(torch.long)
+        targets_tier2 = mask[1, :, :].type(torch.long)
+        targets_tier3 = mask[2, :, :].type(torch.long)
         
         return img, (targets_tier1, targets_tier2, targets_tier3)
 

@@ -1,4 +1,4 @@
 /config.local
 /tmp
 /cache
-service-account.json
+service-account*.json
