@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
+import torchmetrics
 
 from messis.prithvi import TemporalViTEncoder, ConvTransformerTokensToEmbeddingNeck
 
@@ -271,6 +272,35 @@ class Messis(pl.LightningModule):
             hparams.get('weight_tier3_refined'),
             hparams.get('debug')
         )
+
+        # Initialize accuracy metrics for each tier
+        self.accuracy_tier1 = torchmetrics.Accuracy()
+        self.accuracy_tier2 = torchmetrics.Accuracy()
+        self.accuracy_tier3 = torchmetrics.Accuracy()
+        self.accuracy_tier3_refined = torchmetrics.Accuracy()
+
+        # Initialize precision, recall, and F1-score for each tier
+        self.precision_tier1 = torchmetrics.Precision(num_classes=hparams.get('num_classes_tier1'), average='macro')
+        self.recall_tier1 = torchmetrics.Recall(num_classes=hparams.get('num_classes_tier1'), average='macro')
+        self.f1_tier1 = torchmetrics.F1(num_classes=hparams.get('num_classes_tier1'), average='macro')
+
+        self.precision_tier2 = torchmetrics.Precision(num_classes=hparams.get('num_classes_tier2'), average='macro')
+        self.recall_tier2 = torchmetrics.Recall(num_classes=hparams.get('num_classes_tier2'), average='macro')
+        self.f1_tier2 = torchmetrics.F1(num_classes=hparams.get('num_classes_tier2'), average='macro')
+
+        self.precision_tier3 = torchmetrics.Precision(num_classes=hparams.get('num_classes_tier3'), average='macro')
+        self.recall_tier3 = torchmetrics.Recall(num_classes=hparams.get('num_classes_tier3'), average='macro')
+        self.f1_tier3 = torchmetrics.F1(num_classes=hparams.get('num_classes_tier3'), average='macro')
+
+        self.precision_tier3_refined = torchmetrics.Precision(num_classes=hparams.get('num_classes_tier3'), average='macro')
+        self.recall_tier3_refined = torchmetrics.Recall(num_classes=hparams.get('num_classes_tier3'), average='macro')
+        self.f1_tier3_refined = torchmetrics.F1(num_classes=hparams.get('num_classes_tier3'), average='macro')
+
+        # Initialize confusion matrix for each tier
+        self.confmat_tier1 = torchmetrics.ConfusionMatrix(num_classes=hparams.get('num_classes_tier1'))
+        self.confmat_tier2 = torchmetrics.ConfusionMatrix(num_classes=hparams.get('num_classes_tier2'))
+        self.confmat_tier3 = torchmetrics.ConfusionMatrix(num_classes=hparams.get('num_classes_tier3'))
+        self.confmat_tier3_refined = torchmetrics.ConfusionMatrix(num_classes=hparams.get('num_classes_tier3'))
     
     def forward(self, x):
         return self.model(x)
@@ -280,33 +310,88 @@ class Messis(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         return self.__step(batch, batch_idx, "val")
-    
-    def __step(self, batch, batch_idx, stage):
-        inputs, targets = batch
-    
-        if self.hparams.get('debug'):
-            print(f"Step Inputs shape: {safe_shape(inputs)}")
-            print(f"Step Targets shape: {safe_shape(targets)}")
-
-        outputs = self(inputs)
-
-        if self.hparams.get('debug'):
-            print(f"Step Outputs shape: {safe_shape(outputs)}")
-
-        loss = self.model.calculate_loss(outputs, targets)
-
-        # TODO: Implement metrics
-
-        self.log(
-            f"{stage}_loss",
-            loss,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
-        return loss
-
+        
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.get('lr', 1e-3))
         return optimizer
+
+    def __step(self, batch, batch_idx, stage):
+        inputs, targets = batch
+        outputs = self(inputs)
+        loss = self.model.calculate_loss(outputs, targets)
+
+        if self.hparams.get('debug'):
+            print(f"Step Inputs shape: {safe_shape(inputs)}")
+            print(f"Step Targets shape: {safe_shape(targets)}")
+            print(f"Step Outputs shape: {safe_shape(outputs)}")
+
+        # Calculate metrics
+        acc_tier1, acc_tier2, acc_tier3, acc_tier3_refined, combined_acc = self.__calculate_accuracies(outputs, targets)
+        prf_metrics = self.__calculate_precision_recall_f1(outputs, targets)
+
+        # Log all metrics in one go
+        metrics = {
+            f"{stage}_loss": loss,
+            f"{stage}_accuracy_tier1": acc_tier1,
+            f"{stage}_accuracy_tier2": acc_tier2,
+            f"{stage}_accuracy_tier3": acc_tier3,
+            f"{stage}_accuracy_tier3_refined": acc_tier3_refined,
+            f"{stage}_combined_accuracy": combined_acc,
+            **prf_metrics # Precision, Recall, F1
+        }
+        self.log_dict(metrics, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        return loss
+    
+    def __calculate_accuracies(self, outputs, targets):
+        output_tier1, output_tier2, output_tier3, output_tier3_refined = outputs
+        target_tier1, target_tier2, target_tier3 = targets
+
+        # Calculate accuracy for each tier
+        acc_tier1 = self.accuracy_tier1(torch.softmax(output_tier1, dim=1).argmax(dim=1), target_tier1)
+        acc_tier2 = self.accuracy_tier2(torch.softmax(output_tier2, dim=1).argmax(dim=1), target_tier2)
+        acc_tier3 = self.accuracy_tier3(torch.softmax(output_tier3, dim=1).argmax(dim=1), target_tier3)
+        acc_tier3_refined = self.accuracy_tier3_refined(torch.softmax(output_tier3_refined, dim=1).argmax(dim=1), target_tier3)
+
+        # Optionally calculate combined accuracy
+        combined_acc = (acc_tier1 + acc_tier2 + acc_tier3 + acc_tier3_refined) / 4
+        return acc_tier1, acc_tier2, acc_tier3, acc_tier3_refined, combined_acc
+
+    def __calculate_precision_recall_f1(self, outputs, targets):
+        output_tier1, output_tier2, output_tier3, output_tier3_refined = outputs
+        target_tier1, target_tier2, target_tier3 = targets
+
+        preds_tier1 = torch.softmax(output_tier1, dim=1).argmax(dim=1)
+        preds_tier2 = torch.softmax(output_tier2, dim=1).argmax(dim=1)
+        preds_tier3 = torch.softmax(output_tier3, dim=1).argmax(dim=1)
+        preds_tier3_refined = torch.softmax(output_tier3_refined, dim=1).argmax(dim=1)
+
+        precision_tier1 = self.precision_tier1(preds_tier1, target_tier1)
+        recall_tier1 = self.recall_tier1(preds_tier1, target_tier1)
+        f1_tier1 = self.f1_tier1(preds_tier1, target_tier1)
+
+        precision_tier2 = self.precision_tier2(preds_tier2, target_tier2)
+        recall_tier2 = self.recall_tier2(preds_tier2, target_tier2)
+        f1_tier2 = self.f1_tier2(preds_tier2, target_tier2)
+
+        precision_tier3 = self.precision_tier3(preds_tier3, target_tier3)
+        recall_tier3 = self.recall_tier3(preds_tier3, target_tier3)
+        f1_tier3 = self.f1_tier3(preds_tier3, target_tier3)
+
+        precision_tier3_refined = self.precision_tier3_refined(preds_tier3_refined, target_tier3)
+        recall_tier3_refined = self.recall_tier3_refined(preds_tier3_refined, target_tier3)
+        f1_tier3_refined = self.f1_tier3_refined(preds_tier3_refined, target_tier3)
+
+        return {
+            'precision_tier1': precision_tier1,
+            'recall_tier1': recall_tier1,
+            'f1_tier1': f1_tier1,
+            'precision_tier2': precision_tier2,
+            'recall_tier2': recall_tier2,
+            'f1_tier2': f1_tier2,
+            'precision_tier3': precision_tier3,
+            'recall_tier3': recall_tier3,
+            'f1_tier3': f1_tier3,
+            'precision_tier3_refined': precision_tier3_refined,
+            'recall_tier3_refined': recall_tier3_refined,
+            'f1_tier3_refined': f1_tier3_refined
+        }
