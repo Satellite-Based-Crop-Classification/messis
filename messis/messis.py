@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-import torchmetrics
+from torchmetrics import classification
 import wandb
 
 from messis.prithvi import TemporalViTEncoder, ConvTransformerTokensToEmbeddingNeck
@@ -275,33 +275,33 @@ class Messis(pl.LightningModule):
         )
 
         # Initialize accuracy metrics for each tier
-        self.accuracy_tier1 = torchmetrics.Accuracy()
-        self.accuracy_tier2 = torchmetrics.Accuracy()
-        self.accuracy_tier3 = torchmetrics.Accuracy()
-        self.accuracy_tier3_refined = torchmetrics.Accuracy()
+        self.accuracy_tier1 = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier1'), average='macro')
+        self.accuracy_tier2 = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier2'), average='macro')
+        self.accuracy_tier3 = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier3'), average='macro')
+        self.accuracy_tier3_refined = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier3'), average='macro')
 
         # Initialize precision, recall, and F1-score for each tier
-        self.precision_tier1 = torchmetrics.Precision(num_classes=hparams.get('num_classes_tier1'), average='macro')
-        self.recall_tier1 = torchmetrics.Recall(num_classes=hparams.get('num_classes_tier1'), average='macro')
-        self.f1_tier1 = torchmetrics.F1(num_classes=hparams.get('num_classes_tier1'), average='macro')
+        self.precision_tier1 = classification.MulticlassPrecision(num_classes=hparams.get('num_classes_tier1'), average='macro')
+        self.recall_tier1 = classification.MulticlassRecall(num_classes=hparams.get('num_classes_tier1'), average='macro')
+        self.f1_tier1 = classification.MulticlassF1Score(num_classes=hparams.get('num_classes_tier1'), average='macro')
 
-        self.precision_tier2 = torchmetrics.Precision(num_classes=hparams.get('num_classes_tier2'), average='macro')
-        self.recall_tier2 = torchmetrics.Recall(num_classes=hparams.get('num_classes_tier2'), average='macro')
-        self.f1_tier2 = torchmetrics.F1(num_classes=hparams.get('num_classes_tier2'), average='macro')
+        self.precision_tier2 = classification.MulticlassPrecision(num_classes=hparams.get('num_classes_tier2'), average='macro')
+        self.recall_tier2 = classification.MulticlassRecall(num_classes=hparams.get('num_classes_tier2'), average='macro')
+        self.f1_tier2 = classification.MulticlassF1Score(num_classes=hparams.get('num_classes_tier2'), average='macro')
 
-        self.precision_tier3 = torchmetrics.Precision(num_classes=hparams.get('num_classes_tier3'), average='macro')
-        self.recall_tier3 = torchmetrics.Recall(num_classes=hparams.get('num_classes_tier3'), average='macro')
-        self.f1_tier3 = torchmetrics.F1(num_classes=hparams.get('num_classes_tier3'), average='macro')
+        self.precision_tier3 = classification.MulticlassPrecision(num_classes=hparams.get('num_classes_tier3'), average='macro')
+        self.recall_tier3 = classification.MulticlassRecall(num_classes=hparams.get('num_classes_tier3'), average='macro')
+        self.f1_tier3 = classification.MulticlassF1Score(num_classes=hparams.get('num_classes_tier3'), average='macro')
 
-        self.precision_tier3_refined = torchmetrics.Precision(num_classes=hparams.get('num_classes_tier3'), average='macro')
-        self.recall_tier3_refined = torchmetrics.Recall(num_classes=hparams.get('num_classes_tier3'), average='macro')
-        self.f1_tier3_refined = torchmetrics.F1(num_classes=hparams.get('num_classes_tier3'), average='macro')
+        self.precision_tier3_refined = classification.MulticlassPrecision(num_classes=hparams.get('num_classes_tier3'), average='macro')
+        self.recall_tier3_refined = classification.MulticlassRecall(num_classes=hparams.get('num_classes_tier3'), average='macro')
+        self.f1_tier3_refined = classification.MulticlassF1Score(num_classes=hparams.get('num_classes_tier3'), average='macro')
 
         # Initialize confusion matrix for each tier
-        self.confmat_tier1 = torchmetrics.ConfusionMatrix(num_classes=hparams.get('num_classes_tier1'))
-        self.confmat_tier2 = torchmetrics.ConfusionMatrix(num_classes=hparams.get('num_classes_tier2'))
-        self.confmat_tier3 = torchmetrics.ConfusionMatrix(num_classes=hparams.get('num_classes_tier3'))
-        self.confmat_tier3_refined = torchmetrics.ConfusionMatrix(num_classes=hparams.get('num_classes_tier3'))
+        self.confmat_tier1 = classification.MulticlassConfusionMatrix(num_classes=hparams.get('num_classes_tier1'))
+        self.confmat_tier2 = classification.MulticlassConfusionMatrix(num_classes=hparams.get('num_classes_tier2'))
+        self.confmat_tier3 = classification.MulticlassConfusionMatrix(num_classes=hparams.get('num_classes_tier3'))
+        self.confmat_tier3_refined = classification.MulticlassConfusionMatrix(num_classes=hparams.get('num_classes_tier3'))
     
     def forward(self, x):
         return self.model(x)
@@ -341,7 +341,7 @@ class Messis(pl.LightningModule):
             **prf_metrics # Precision, Recall, F1
         }
         self.log_dict(metrics, on_step=False, on_epoch=True, prog_bar=True, logger=True)
-        return loss
+        return {'loss': loss, 'outputs': outputs}
     
     def __calculate_accuracies(self, outputs, targets):
         output_tier1, output_tier2, output_tier3, output_tier3_refined = outputs
@@ -399,12 +399,14 @@ class Messis(pl.LightningModule):
         
 class LogConfusionMatrix(pl.Callback):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        actual_outputs = outputs['outputs']
         targets = batch[1]
-        self.update_confusion_matrices(outputs, targets, pl_module)
+        self.update_confusion_matrices(actual_outputs, targets, pl_module)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        actual_outputs = outputs['outputs']
         targets = batch[1]
-        self.update_confusion_matrices(outputs, targets, pl_module)
+        self.update_confusion_matrices(actual_outputs, targets, pl_module)
 
     def update_confusion_matrices(self, outputs, targets, pl_module):
         preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
@@ -416,13 +418,11 @@ class LogConfusionMatrix(pl.Callback):
 
     def on_train_epoch_end(self, trainer, pl_module):
         # Log and then reset the confusion matrices after training epoch
-        self.log_confusion_matrices(trainer, pl_module, 'train')
-        self.reset_confusion_matrices(pl_module)
+        self.log_and_reset_confusion_matrices(trainer, pl_module, 'train')
 
     def on_validation_epoch_end(self, trainer, pl_module):
         # Log and then reset the confusion matrices after validation epoch
-        self.log_confusion_matrices(trainer, pl_module, 'val')
-        self.reset_confusion_matrices(pl_module)
+        self.log_and_reset_confusion_matrices(trainer, pl_module, 'val')
 
     def log_and_reset_confusion_matrices(self, trainer, pl_module, phase):
         matrices = {
