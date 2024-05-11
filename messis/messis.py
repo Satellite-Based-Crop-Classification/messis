@@ -339,8 +339,8 @@ class Messis(pl.LightningModule):
 
         # Log all metrics in one go
         metrics = {
-            **acc_metrics, # Accuracy
-            **prf_metrics # Precision, Recall, F1
+            # **acc_metrics, # Accuracy
+            **prf_metrics, # Precision, Recall, F1
             **cohen_kappa_metrics # Cohen's Kappa
         }
 
@@ -348,7 +348,7 @@ class Messis(pl.LightningModule):
         metrics = {f"{stage}_{k}": v for k, v in metrics.items()}
 
         self.log('loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.log_dict(metrics, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        self.log_dict(metrics, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         return {'loss': loss, 'outputs': outputs}
     
     def __calculate_accuracies(self, outputs, targets):
@@ -492,6 +492,10 @@ class LogAccuracyMetrics(pl.Callback):
     def __init__(self, hparams):
         super().__init__()
 
+        assert hparams.get('num_classes_tier1') is not None, "num_classes_tier1 is required in hparams"
+        assert hparams.get('num_classes_tier2') is not None, "num_classes_tier2 is required in hparams"
+        assert hparams.get('num_classes_tier3') is not None, "num_classes_tier3 is required in hparams"
+
         self.tiers = ['tier1', 'tier2', 'tier3', 'tier3_refined']
 
         # Metrics initialization
@@ -504,7 +508,16 @@ class LogAccuracyMetrics(pl.Callback):
         self.tiers_num_classes = ([hparams.get(f'num_classes_{tier}') for tier in self.tiers[:-1]]) + [hparams.get('num_classes_tier3')]
         for tier, num_classes in zip(self.tiers, self.tiers_num_classes):
             for class_index in range(num_classes):
-                setattr(self, f'accuracy_{tier}_class_{class_index}', classification.BinaryAccuracy())
+                setattr(self, f'accuracy_{tier}_class_{class_index}', classification.MulticlassAccuracy(num_classes=num_classes, average='macro'))
+
+    def setup(self, trainer, pl_module, stage=None):
+        # Move all metrics to the correct device at the start of the training/validation
+        device = pl_module.device
+        for tier in self.tiers:
+            getattr(self, f'accuracy_{tier}').to(device)
+            num_classes = self.tiers_num_classes[self.tiers.index(tier)]
+            for class_index in range(num_classes):
+                getattr(self, f'accuracy_{tier}_class_{class_index}').to(device)
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         actual_outputs = outputs['outputs']
