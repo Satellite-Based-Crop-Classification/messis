@@ -380,11 +380,7 @@ class LogMessisMetrics(pl.Callback):
         self.phases = ['train', 'val', 'test']
         self.tiers_num_classes = ([hparams.get(f'num_classes_{tier}') for tier in self.tiers[:-1]]) + [hparams.get('num_classes_tier3')]
         self.debug = debug
-
-        if debug:
-            print(f"Phases: {self.phases}")
-            print(f"Tiers: {self.tiers}")
-            print(f"Tiers num classes: {self.tiers_num_classes}")
+        if debug: print(f"Phases: {self.phases}, Tiers: {self.tiers}, Tiers num classes: {self.tiers_num_classes}")
 
         # Initialize metrics
         self.metrics_to_compute = ['accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
@@ -454,6 +450,7 @@ class LogMessisMetrics(pl.Callback):
             class_mask = targets == class_index
             if class_mask.any():
                 class_accuracy.update(preds[class_mask], targets[class_mask])
+                if self.debug: print(f"Per-class accuracy for class {class_index} updated. Update count: {class_accuracy._update_count}")
 
     def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
         self.__on_epoch_end(trainer, pl_module, 'train')
@@ -469,11 +466,6 @@ class LogMessisMetrics(pl.Callback):
         accuracies = []
         for tier in self.tiers:
             metrics = self.metrics[phase][tier]
-
-            # Print number of updates for each metric
-            if self.debug:
-                for metric in self.metrics_to_compute:
-                    print(f"END: {phase} {tier} {metric} update count: {metrics[metric]._update_count}")
 
             # Calculate and reset in tier: Accuracy, Precision, Recall, F1, Cohen's Kappa
             metrics_dict = {metric: metrics[metric].compute() for metric in self.metrics_to_compute}
