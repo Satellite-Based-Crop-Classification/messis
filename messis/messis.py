@@ -274,12 +274,6 @@ class Messis(pl.LightningModule):
             hparams.get('debug')
         )
 
-        # Initialize accuracy metrics for each tier
-        self.accuracy_tier1 = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier1'), average='macro')
-        self.accuracy_tier2 = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier2'), average='macro')
-        self.accuracy_tier3 = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier3'), average='macro')
-        self.accuracy_tier3_refined = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier3'), average='macro')
-
         # Initialize precision, recall, and F1-score for each tier
         self.precision_tier1 = classification.MulticlassPrecision(num_classes=hparams.get('num_classes_tier1'), average='macro')
         self.recall_tier1 = classification.MulticlassRecall(num_classes=hparams.get('num_classes_tier1'), average='macro')
@@ -333,13 +327,11 @@ class Messis(pl.LightningModule):
             print(f"Step Outputs shape: {safe_shape(outputs)}")
 
         # Calculate metrics
-        acc_metrics = self.__calculate_accuracies(outputs, targets)
         prf_metrics = self.__calculate_precision_recall_f1(outputs, targets)
         cohen_kappa_metrics = self.__calculate_cohens_kappa(outputs, targets)
 
         # Log all metrics in one go
         metrics = {
-            # **acc_metrics, # Accuracy
             **prf_metrics, # Precision, Recall, F1
             **cohen_kappa_metrics # Cohen's Kappa
         }
@@ -350,26 +342,6 @@ class Messis(pl.LightningModule):
         self.log('loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log_dict(metrics, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         return {'loss': loss, 'outputs': outputs}
-    
-    def __calculate_accuracies(self, outputs, targets):
-        output_tier1, output_tier2, output_tier3, output_tier3_refined = outputs
-        target_tier1, target_tier2, target_tier3 = targets
-
-        # Calculate accuracy for each tier
-        acc_tier1 = self.accuracy_tier1(torch.softmax(output_tier1, dim=1).argmax(dim=1), target_tier1)
-        acc_tier2 = self.accuracy_tier2(torch.softmax(output_tier2, dim=1).argmax(dim=1), target_tier2)
-        acc_tier3 = self.accuracy_tier3(torch.softmax(output_tier3, dim=1).argmax(dim=1), target_tier3)
-        acc_tier3_refined = self.accuracy_tier3_refined(torch.softmax(output_tier3_refined, dim=1).argmax(dim=1), target_tier3)
-
-        # Calculate overall accuracy
-        overall_acc = (acc_tier1 + acc_tier2 + acc_tier3 + acc_tier3_refined) / 4
-        return {
-            'acc_tier1': acc_tier1,
-            'acc_tier2': acc_tier2,
-            'acc_tier3': acc_tier3,
-            'acc_tier3_refined': acc_tier3_refined,
-            'overall_acc': overall_acc
-        }
 
     def __calculate_precision_recall_f1(self, outputs, targets):
         output_tier1, output_tier2, output_tier3, output_tier3_refined = outputs
@@ -533,6 +505,7 @@ class LogAccuracyMetrics(pl.Callback):
         self.__on_batch_end(trainer, pl_module, outputs, batch, batch_idx, 'test')
 
     def __on_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, phase):
+        if trainer.sanity_checking: return
         outputs = outputs['outputs']
         targets = batch[1]
         preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
@@ -542,7 +515,7 @@ class LogAccuracyMetrics(pl.Callback):
             metrics['accuracy'].update(pred, target)
             self.__update_per_class_accuracy(pred, target, metrics['per_class_accuracies'])
 
-        print(f"{phase} batch ended. Updating accuracy metrics...", targets[0].shape)
+        # print(f"{phase} batch ended. Updating accuracy metrics...", targets[0].shape)
 
     def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
         for class_index, class_accuracy in per_class_accuracies.items():
@@ -568,17 +541,17 @@ class LogAccuracyMetrics(pl.Callback):
             # Accuracy in tier
             accuracy = metrics['accuracy'].compute()
             accuracies.append(accuracy)
-            pl_module.log(f"{phase}_{tier}_accuracy", accuracy, on_step=False, on_epoch=True)
+            pl_module.log(f"{phase}_accuracy_{tier}", accuracy, on_step=False, on_epoch=True)
             metrics['accuracy'].reset()
 
             # Per-class accuracy in tier
             for class_index, class_accuracy in metrics['per_class_accuracies'].items():
                 class_accuracy_value = class_accuracy.compute()
-                pl_module.log(f"{phase}_{tier}_class_{class_index}_accuracy", class_accuracy_value, on_step=False, on_epoch=True)
+                pl_module.log(f"{phase}_accuracy_{tier}_class_{class_index}", class_accuracy_value, on_step=False, on_epoch=True)
                 class_accuracy.reset()
 
         # Overall accuracy
         overall_accuracy = sum(accuracies) / len(accuracies)
-        pl_module.log(f"{phase}_overall_accuracy", overall_accuracy, on_step=False, on_epoch=True)
+        pl_module.log(f"{phase}_accuracy_overall", overall_accuracy, on_step=False, on_epoch=True)
 
-        print(f"{phase} epoch ended. Logging & resetting accuracy metrics...", trainer.sanity_checking)
+        # print(f"{phase} epoch ended. Logging & resetting accuracy metrics...", trainer.sanity_checking)
