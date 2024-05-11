@@ -302,40 +302,61 @@ class Messis(pl.LightningModule):
         return {'loss': loss, 'outputs': outputs}
         
 class LogConfusionMatrix(pl.Callback):
-    def __init__(self, hparams):
+    def __init__(self, hparams, debug=False):
         super().__init__()
 
-        # Initialize confusion matrix for each tier
-        self.confmat_tier1 = classification.MulticlassConfusionMatrix(num_classes=hparams['tiers']['tier1']['num_classes'])
-        self.confmat_tier2 = classification.MulticlassConfusionMatrix(num_classes=hparams['tiers']['tier2']['num_classes'])
-        self.confmat_tier3 = classification.MulticlassConfusionMatrix(num_classes=hparams['tiers']['tier3']['num_classes'])
-        self.confmat_tier3_refined = classification.MulticlassConfusionMatrix(num_classes=hparams['tiers']['tier3_refined']['num_classes'])
+        assert hparams.get('tiers') is not None, "Tiers must be defined in the hparams"
+
+        self.tiers_dict = hparams.get('tiers')
+        self.tiers = list(hparams.get('tiers').keys())
+        self.phases = ['train', 'val', 'test']
+        self.debug = debug
+
+        # Initialize confusion matrices
+        self.metrics_to_compute = ['confusion_matrix']
+        self.metrics = {phase: {tier: self.__init_metrics(tier, phase) for tier in self.tiers} for phase in self.phases}
+
+    def __init_metrics(self, tier, phase):
+        num_classes = self.tiers_dict[tier]['num_classes']
+        confusion_matrix = classification.MulticlassConfusionMatrix(num_classes=num_classes)
+
+        return {
+            'confusion_matrix': confusion_matrix
+        }
 
     def setup(self, trainer, pl_module, stage=None):
         # Move all metrics to the correct device at the start of the training/validation
         device = pl_module.device
-        self.confmat_tier1.to(device)
-        self.confmat_tier2.to(device)
-        self.confmat_tier3.to(device)
-        self.confmat_tier3_refined.to(device)
+        for phase_metrics in self.metrics.values():
+            for tier_metrics in phase_metrics.values():
+                for metric in self.metrics_to_compute:
+                    tier_metrics[metric].to(device)
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        actual_outputs = outputs['outputs']
-        targets = batch[1]
-        self.__update_confusion_matrices(actual_outputs, targets, pl_module)
+        self.__update_confusion_matrices(trainer, pl_module, outputs, batch, batch_idx, 'train')
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        actual_outputs = outputs['outputs']
-        targets = batch[1]
-        self.__update_confusion_matrices(actual_outputs, targets, pl_module)
+        self.__update_confusion_matrices(trainer, pl_module, outputs, batch, batch_idx, 'val')
 
-    def __update_confusion_matrices(self, outputs, targets, pl_module):
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        self.__update_confusion_matrices(trainer, pl_module, outputs, batch, batch_idx, 'test')
+
+    def __update_confusion_matrices(self, trainer, pl_module, outputs, batch, batch_idx, phase):
+        if trainer.sanity_checking: return
+
+        outputs = outputs['outputs']
+        tier1_targets, tier2_targets, tier3_targets = batch[1]
+        targets = [tier1_targets, tier2_targets, tier3_targets, tier3_targets]
         preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
-        tiers = ['tier1', 'tier2', 'tier3', 'tier3_refined']
-        target_tier1, target_tier2, target_tier3 = targets
-        targets = [target_tier1, target_tier2, target_tier3, target_tier3]
-        for pred, target, tier in zip(preds, targets, tiers):
-            getattr(pl_module, f'confmat_{tier}')(pred, target)
+
+        # Update all metrics
+        assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
+        assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
+
+        for pred, target, tier in zip(preds, targets, self.tiers):
+            if self.debug: print(f"Updating confusion matrix for {phase} {tier}")
+            metrics = self.metrics[phase][tier]
+            metrics['confusion_matrix'].update(pred, target)
 
     def on_train_epoch_end(self, trainer, pl_module):
         # Log and then reset the confusion matrices after training epoch
@@ -345,21 +366,20 @@ class LogConfusionMatrix(pl.Callback):
         # Log and then reset the confusion matrices after validation epoch
         self.__log_and_reset_confusion_matrices(trainer, pl_module, 'val')
 
+    def on_test_epoch_end(self, trainer, pl_module):
+        # Log and then reset the confusion matrices after test epoch
+        self.__log_and_reset_confusion_matrices(trainer, pl_module, 'test')
+
     def __log_and_reset_confusion_matrices(self, trainer, pl_module, phase):
-        if trainer.sanity_checking:
-            # Skip computing metrics during sanity check (avoid warning about metric compute being called before update)
-            return
-        matrices = {
-            'tier1': pl_module.confmat_tier1.compute(),
-            'tier2': pl_module.confmat_tier2.compute(),
-            'tier3': pl_module.confmat_tier3.compute(),
-            'tier3_refined': pl_module.confmat_tier3_refined.compute()
-        }
-        for tier, matrix in matrices.items():
-            trainer.logger.experiment.log({
-                f"{phase}_{tier}_confusion_matrix": self.create_wandb_confusion_matrix(matrix)
-            })
-            getattr(pl_module, f'confmat_{tier}').reset()
+        if trainer.sanity_checking: return
+
+        for tier in self.tiers:
+            metrics = self.metrics[phase][tier]
+            confusion_matrix = metrics['confusion_matrix']
+            if self.debug: print(f"Logging and resetting confusion matrix for {phase} {tier} Update count: {confusion_matrix._update_count}")
+            matrix = confusion_matrix.compute()
+            trainer.logger.experiment.log({f"{phase}_{tier}_confusion_matrix": self.create_wandb_confusion_matrix(matrix)})
+            confusion_matrix.reset()
 
     @staticmethod
     def create_wandb_confusion_matrix(matrix):
@@ -446,8 +466,8 @@ class LogMessisMetrics(pl.Callback):
         # Update all metrics
         assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
         assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
+        
         for pred, target, tier in zip(preds, targets, self.tiers):
-            
             metrics = self.metrics[phase][tier]
             for metric in self.metrics_to_compute:
                 metrics[metric].update(pred, target)
