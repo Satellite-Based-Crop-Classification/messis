@@ -368,7 +368,7 @@ class LogConfusionMatrix(pl.Callback):
         return preds, y_true
     
 class LogMessisMetrics(pl.Callback):
-    def __init__(self, hparams):
+    def __init__(self, hparams, debug=False):
         super().__init__()
 
         assert hparams.get('num_classes_tier1') is not None, "num_classes_tier1 is required in hparams"
@@ -379,7 +379,12 @@ class LogMessisMetrics(pl.Callback):
         self.tiers = ['tier1', 'tier2', 'tier3', 'tier3_refined']
         self.phases = ['train', 'val', 'test']
         self.tiers_num_classes = ([hparams.get(f'num_classes_{tier}') for tier in self.tiers[:-1]]) + [hparams.get('num_classes_tier3')]
-        print(f"Tier num classes: {self.tiers_num_classes}")
+        self.debug = debug
+
+        if debug:
+            print(f"Phases: {self.phases}")
+            print(f"Tiers: {self.tiers}")
+            print(f"Tiers num classes: {self.tiers_num_classes}")
 
         # Initialize metrics
         self.metrics_to_compute = ['accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
@@ -427,20 +432,22 @@ class LogMessisMetrics(pl.Callback):
 
     def __on_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, phase):
         if trainer.sanity_checking: return
+        if self.debug: print(f"{phase} batch ended. Updating metrics...")
+
         outputs = outputs['outputs']
-        targets = batch[1]
+        tier1_targets, tier2_targets, tier3_targets = batch[1]
+        targets = [tier1_targets, tier2_targets, tier3_targets, tier3_targets]
         preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
 
         # Update all metrics
+        assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
+        assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
         for pred, target, tier in zip(preds, targets, self.tiers):
-            # TODO: check why tier3_refined is not being updated???
             metrics = self.metrics[phase][tier]
             for metric in self.metrics_to_compute:
                 metrics[metric].update(pred, target)
-                print(f"{phase} {tier} {metric} updated. Update count {metrics[metric]._update_count}")
+                if self.debug: print(f"{phase} {tier} {metric} updated. Update count: {metrics[metric]._update_count}")
             self.__update_per_class_accuracy(pred, target, metrics['per_class_accuracies'])
-
-        print(f"{phase} batch ended. Updating metrics...", targets[0].shape)
 
     def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
         for class_index, class_accuracy in per_class_accuracies.items():
@@ -464,8 +471,9 @@ class LogMessisMetrics(pl.Callback):
             metrics = self.metrics[phase][tier]
 
             # Print number of updates for each metric
-            for metric in self.metrics_to_compute:
-                print(f"END: {phase} {tier} {metric} update count: {metrics[metric]._update_count}")
+            if self.debug:
+                for metric in self.metrics_to_compute:
+                    print(f"END: {phase} {tier} {metric} update count: {metrics[metric]._update_count}")
 
             # Calculate and reset in tier: Accuracy, Precision, Recall, F1, Cohen's Kappa
             metrics_dict = {metric: metrics[metric].compute() for metric in self.metrics_to_compute}
@@ -478,6 +486,8 @@ class LogMessisMetrics(pl.Callback):
 
             # Per-class accuracy in tier
             for class_index, class_accuracy in metrics['per_class_accuracies'].items():
+                if class_accuracy._update_count == 0:
+                    continue # Skip if no updates have been made (no samples of this class in the processed dataset partition)
                 class_accuracy_value = class_accuracy.compute()
                 pl_module.log(f"{phase}_accuracy_{tier}_class_{class_index}", class_accuracy_value, on_step=False, on_epoch=True)
                 class_accuracy.reset()
@@ -486,4 +496,4 @@ class LogMessisMetrics(pl.Callback):
         overall_accuracy = sum(accuracies) / len(accuracies)
         pl_module.log(f"{phase}_accuracy_overall", overall_accuracy, on_step=False, on_epoch=True)
 
-        print(f"{phase} epoch ended. Logging & resetting metrics...", trainer.sanity_checking)
+        if self.debug: print(f"{phase} epoch ended. Logging & resetting metrics...", trainer.sanity_checking)
