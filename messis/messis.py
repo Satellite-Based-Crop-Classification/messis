@@ -436,14 +436,14 @@ class LogConfusionMatrix(pl.Callback):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         actual_outputs = outputs['outputs']
         targets = batch[1]
-        self.update_confusion_matrices(actual_outputs, targets, pl_module)
+        self.__update_confusion_matrices(actual_outputs, targets, pl_module)
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         actual_outputs = outputs['outputs']
         targets = batch[1]
-        self.update_confusion_matrices(actual_outputs, targets, pl_module)
+        self.__update_confusion_matrices(actual_outputs, targets, pl_module)
 
-    def update_confusion_matrices(self, outputs, targets, pl_module):
+    def __update_confusion_matrices(self, outputs, targets, pl_module):
         preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
         tiers = ['tier1', 'tier2', 'tier3', 'tier3_refined']
         target_tier1, target_tier2, target_tier3 = targets
@@ -453,13 +453,13 @@ class LogConfusionMatrix(pl.Callback):
 
     def on_train_epoch_end(self, trainer, pl_module):
         # Log and then reset the confusion matrices after training epoch
-        self.log_and_reset_confusion_matrices(trainer, pl_module, 'train')
+        self.__log_and_reset_confusion_matrices(trainer, pl_module, 'train')
 
     def on_validation_epoch_end(self, trainer, pl_module):
         # Log and then reset the confusion matrices after validation epoch
-        self.log_and_reset_confusion_matrices(trainer, pl_module, 'val')
+        self.__log_and_reset_confusion_matrices(trainer, pl_module, 'val')
 
-    def log_and_reset_confusion_matrices(self, trainer, pl_module, phase):
+    def __log_and_reset_confusion_matrices(self, trainer, pl_module, phase):
         matrices = {
             'tier1': pl_module.confmat_tier1.compute(),
             'tier2': pl_module.confmat_tier2.compute(),
@@ -487,3 +487,60 @@ class LogConfusionMatrix(pl.Callback):
                 preds.extend([j] * count)
                 y_true.extend([i] * count)
         return preds, y_true
+    
+class LogAccuracyMetrics(pl.Callback):
+    def __init__(self, hparams):
+        super().__init__()
+
+        self.tiers = ['tier1', 'tier2', 'tier3', 'tier3_refined']
+
+        # Metrics initialization
+        self.accuracy_tier1 = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier1'), average='macro')
+        self.accuracy_tier2 = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier2'), average='macro')
+        self.accuracy_tier3 = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier3'), average='macro')
+        self.accuracy_tier3_refined = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier3'), average='macro')
+
+        # Per-class accuracy metrics
+        self.tiers_num_classes = ([hparams.get(f'num_classes_{tier}') for tier in self.tiers[:-1]]) + [hparams.get('num_classes_tier3')]
+        for tier, num_classes in zip(self.tiers, self.tiers_num_classes):
+            for class_index in range(num_classes):
+                setattr(self, f'accuracy_{tier}_class_{class_index}', classification.BinaryAccuracy())
+
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        actual_outputs = outputs['outputs']
+        targets = batch[1]
+        self.__update_accuracy_metrics(actual_outputs, targets, pl_module)
+
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        actual_outputs = outputs['outputs']
+        targets = batch[1]
+        self.__update_accuracy_metrics(actual_outputs, targets, pl_module)
+
+    def __update_accuracy_metrics(self, outputs, targets, pl_module):
+        preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
+        for pred, target, tier in zip(preds, targets, self.tiers):
+            getattr(self, f'accuracy_{tier}').update(pred, target)
+            self.__update_per_class_accuracy(pred, target, pl_module, tier)
+
+    def __update_per_class_accuracy(self, preds, targets, pl_module, tier):
+        num_classes = self.tiers_num_classes[self.tiers.index(tier)]
+        for class_index in range(num_classes):
+            class_mask = targets == class_index
+            if class_mask.any():
+                class_accuracy = getattr(self, f'accuracy_{tier}_class_{class_index}')
+                class_accuracy.update(preds[class_mask], targets[class_mask])
+                pl_module.log(f"{tier}_class_{class_index}_accuracy", class_accuracy.compute(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        self.__log_and_reset_accuracy_metrics(trainer, pl_module, 'train')
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        self.__log_and_reset_accuracy_metrics(trainer, pl_module, 'val')
+
+    def __log_and_reset_accuracy_metrics(self, trainer, pl_module, phase):
+        for tier in self.tiers:
+            accuracy_metric = getattr(self, f'accuracy_{tier}')
+            trainer.logger.experiment.log({
+                f"{phase}_{tier}_accuracy": accuracy_metric.compute()
+            })
+            accuracy_metric.reset()
