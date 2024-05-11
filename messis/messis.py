@@ -460,6 +460,9 @@ class LogConfusionMatrix(pl.Callback):
         self.__log_and_reset_confusion_matrices(trainer, pl_module, 'val')
 
     def __log_and_reset_confusion_matrices(self, trainer, pl_module, phase):
+        if trainer.sanity_checking:
+            # Skip computing metrics during sanity check (avoid warning about metric compute being called before update)
+            return
         matrices = {
             'tier1': pl_module.confmat_tier1.compute(),
             'tier2': pl_module.confmat_tier2.compute(),
@@ -496,73 +499,86 @@ class LogAccuracyMetrics(pl.Callback):
         assert hparams.get('num_classes_tier2') is not None, "num_classes_tier2 is required in hparams"
         assert hparams.get('num_classes_tier3') is not None, "num_classes_tier3 is required in hparams"
 
+        # TODO: move to hparams
         self.tiers = ['tier1', 'tier2', 'tier3', 'tier3_refined']
-
-        # Metrics initialization
-        self.accuracy_tier1 = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier1'), average='macro')
-        self.accuracy_tier2 = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier2'), average='macro')
-        self.accuracy_tier3 = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier3'), average='macro')
-        self.accuracy_tier3_refined = classification.MulticlassAccuracy(num_classes=hparams.get('num_classes_tier3'), average='macro')
-
-        # Per-class accuracy metrics
+        self.phases = ['train', 'val', 'test']
         self.tiers_num_classes = ([hparams.get(f'num_classes_{tier}') for tier in self.tiers[:-1]]) + [hparams.get('num_classes_tier3')]
-        for tier, num_classes in zip(self.tiers, self.tiers_num_classes):
-            for class_index in range(num_classes):
-                setattr(self, f'accuracy_{tier}_class_{class_index}', classification.MulticlassAccuracy(num_classes=num_classes, average='macro'))
+
+        self.metrics = {phase: {tier: self.__init_metrics(tier, phase) for tier in self.tiers} for phase in self.phases}
+
+    def __init_metrics(self, tier, phase):
+        num_classes = self.tiers_num_classes[self.tiers.index(tier)]
+        accuracy = classification.MulticlassAccuracy(num_classes=num_classes, average='macro')
+        per_class_accuracies = {
+            class_index: classification.MulticlassAccuracy(num_classes=num_classes, average='macro') for class_index in range(num_classes)
+        }
+        return {'accuracy': accuracy, 'per_class_accuracies': per_class_accuracies}
 
     def setup(self, trainer, pl_module, stage=None):
         # Move all metrics to the correct device at the start of the training/validation
         device = pl_module.device
-        for tier in self.tiers:
-            getattr(self, f'accuracy_{tier}').to(device)
-            num_classes = self.tiers_num_classes[self.tiers.index(tier)]
-            for class_index in range(num_classes):
-                getattr(self, f'accuracy_{tier}_class_{class_index}').to(device)
+        for phase_metrics in self.metrics.values():
+            for tier_metrics in phase_metrics.values():
+                tier_metrics['accuracy'].to(device)
+                for class_accuracy in tier_metrics['per_class_accuracies'].values():
+                    class_accuracy.to(device)
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        actual_outputs = outputs['outputs']
-        targets = batch[1]
-        self.__update_accuracy_metrics(actual_outputs, targets, pl_module)
+        self.__on_batch_end(trainer, pl_module, outputs, batch, batch_idx, 'train')
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        actual_outputs = outputs['outputs']
+        self.__on_batch_end(trainer, pl_module, outputs, batch, batch_idx, 'val')
+
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        self.__on_batch_end(trainer, pl_module, outputs, batch, batch_idx, 'test')
+
+    def __on_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, phase):
+        outputs = outputs['outputs']
         targets = batch[1]
-        self.__update_accuracy_metrics(actual_outputs, targets, pl_module)
-
-    def __update_accuracy_metrics(self, outputs, targets, pl_module):
         preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
-        for pred, target, tier in zip(preds, targets, self.tiers):
-            getattr(self, f'accuracy_{tier}').update(pred, target)
-            self.__update_per_class_accuracy(pred, target, pl_module, tier)
 
-    def __update_per_class_accuracy(self, preds, targets, pl_module, tier):
-        num_classes = self.tiers_num_classes[self.tiers.index(tier)]
-        for class_index in range(num_classes):
+        for pred, target, tier in zip(preds, targets, self.tiers):
+            metrics = self.metrics[phase][tier]
+            metrics['accuracy'].update(pred, target)
+            self.__update_per_class_accuracy(pred, target, metrics['per_class_accuracies'])
+
+        print(f"{phase} batch ended. Updating accuracy metrics...", targets[0].shape)
+
+    def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
+        for class_index, class_accuracy in per_class_accuracies.items():
             class_mask = targets == class_index
             if class_mask.any():
-                # TODO: Make sure this actually calculates the per-class accuracy correctly
-                class_accuracy = getattr(self, f'accuracy_{tier}_class_{class_index}')
                 class_accuracy.update(preds[class_mask], targets[class_mask])
 
     def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
-        self.__log_and_reset_accuracy_metrics(trainer, pl_module, 'train')
+        self.__on_epoch_end(trainer, pl_module, 'train')
 
     def on_validation_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
-        self.__log_and_reset_accuracy_metrics(trainer, pl_module, 'val')
+        self.__on_epoch_end(trainer, pl_module, 'val')
 
-    def __log_and_reset_accuracy_metrics(self, trainer: pl.Trainer, pl_module: pl.LightningModule, phase):
+    def on_test_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+        self.__on_epoch_end(trainer, pl_module, 'test')
+
+    def __on_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule, phase):
+        if trainer.sanity_checking: return # Skip during sanity check (avoid warning about metric compute being called before update)
+        accuracies = []
         for tier in self.tiers:
-            # Log and reset accuracy
-            tier_accuracy = getattr(self, f'accuracy_{tier}')
-            pl_module.log(f"{phase}_{tier}_accuracy", tier_accuracy.compute(), on_step=False, on_epoch=True)
-            tier_accuracy.reset()
+            metrics = self.metrics[phase][tier]
 
-            # Log and reset per-class accuracies
-            num_classes = self.tiers_num_classes[self.tiers.index(tier)]
-            per_class_accuracies_dict = {}
-            for class_index in range(num_classes):
-                class_accuracy = getattr(self, f'accuracy_{tier}_class_{class_index}')
-                per_class_accuracy_name = f"{phase}_{tier}_class_{class_index}_accuracy"
-                per_class_accuracies_dict[per_class_accuracy_name] = class_accuracy.compute()
+            # Accuracy in tier
+            accuracy = metrics['accuracy'].compute()
+            accuracies.append(accuracy)
+            pl_module.log(f"{phase}_{tier}_accuracy", accuracy, on_step=False, on_epoch=True)
+            metrics['accuracy'].reset()
+
+            # Per-class accuracy in tier
+            for class_index, class_accuracy in metrics['per_class_accuracies'].items():
+                class_accuracy_value = class_accuracy.compute()
+                pl_module.log(f"{phase}_{tier}_class_{class_index}_accuracy", class_accuracy_value, on_step=False, on_epoch=True)
                 class_accuracy.reset()
-            pl_module.log_dict(per_class_accuracies_dict, on_step=False, on_epoch=True)
+
+        # Overall accuracy
+        overall_accuracy = sum(accuracies) / len(accuracies)
+        pl_module.log(f"{phase}_overall_accuracy", overall_accuracy, on_step=False, on_epoch=True)
+
+        print(f"{phase} epoch ended. Logging & resetting accuracy metrics...", trainer.sanity_checking)
