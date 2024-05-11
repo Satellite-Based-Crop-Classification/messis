@@ -527,20 +527,29 @@ class LogAccuracyMetrics(pl.Callback):
         for class_index in range(num_classes):
             class_mask = targets == class_index
             if class_mask.any():
+                # TODO: Make sure this actually calculates the per-class accuracy correctly
                 class_accuracy = getattr(self, f'accuracy_{tier}_class_{class_index}')
                 class_accuracy.update(preds[class_mask], targets[class_mask])
-                pl_module.log(f"{tier}_class_{class_index}_accuracy", class_accuracy.compute(), on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
-    def on_train_epoch_end(self, trainer, pl_module):
+    def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
         self.__log_and_reset_accuracy_metrics(trainer, pl_module, 'train')
 
-    def on_validation_epoch_end(self, trainer, pl_module):
+    def on_validation_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
         self.__log_and_reset_accuracy_metrics(trainer, pl_module, 'val')
 
-    def __log_and_reset_accuracy_metrics(self, trainer, pl_module, phase):
+    def __log_and_reset_accuracy_metrics(self, trainer: pl.Trainer, pl_module: pl.LightningModule, phase):
         for tier in self.tiers:
-            accuracy_metric = getattr(self, f'accuracy_{tier}')
-            trainer.logger.experiment.log({
-                f"{phase}_{tier}_accuracy": accuracy_metric.compute()
-            })
-            accuracy_metric.reset()
+            # Log and reset accuracy
+            tier_accuracy = getattr(self, f'accuracy_{tier}')
+            pl_module.log(f"{phase}_{tier}_accuracy", tier_accuracy.compute(), on_step=False, on_epoch=True)
+            tier_accuracy.reset()
+
+            # Log and reset per-class accuracies
+            num_classes = self.tiers_num_classes[self.tiers.index(tier)]
+            per_class_accuracies_dict = {}
+            for class_index in range(num_classes):
+                class_accuracy = getattr(self, f'accuracy_{tier}_class_{class_index}')
+                per_class_accuracy_name = f"{phase}_{tier}_class_{class_index}_accuracy"
+                per_class_accuracies_dict[per_class_accuracy_name] = class_accuracy.compute()
+                class_accuracy.reset()
+            pl_module.log_dict(per_class_accuracies_dict, on_step=False, on_epoch=True)
