@@ -260,27 +260,20 @@ class Messis(pl.LightningModule):
         self.save_hyperparameters(hparams)
 
         self.model = HierarchicalClassifier(
-            hparams.get('num_classes_tier1'), 
-            hparams.get('num_classes_tier2'),
-            hparams.get('num_classes_tier3'),
-            hparams.get('img_size'),
-            hparams.get('patch_size'),
-            hparams.get('num_frames'),
-            hparams.get('bands'),
-            hparams.get('weight_tier1'),
-            hparams.get('weight_tier2'),
-            hparams.get('weight_tier3'),
-            hparams.get('weight_tier3_refined'),
-            hparams.get('debug')
+            num_classes_tier1=hparams['tiers']['tier1']['num_classes'],
+            num_classes_tier2=hparams['tiers']['tier2']['num_classes'],
+            num_classes_tier3=hparams['tiers']['tier3']['num_classes'],
+            img_size=hparams.get('img_size'),
+            patch_size=hparams.get('patch_size'),
+            num_frames=hparams.get('num_frames'),
+            bands=hparams.get('bands'),
+            weight_tier1=hparams['tiers']['tier1']['loss_weight'],
+            weight_tier2=hparams['tiers']['tier2']['loss_weight'],
+            weight_tier3=hparams['tiers']['tier3']['loss_weight'],
+            weight_tier3_refined=hparams['tiers']['tier3_refined']['loss_weight'],
+            debug=hparams.get('debug')
         )
 
-        # Initialize confusion matrix for each tier
-        # TODO: Move to ConfusionMatrixCallback
-        self.confmat_tier1 = classification.MulticlassConfusionMatrix(num_classes=hparams.get('num_classes_tier1'))
-        self.confmat_tier2 = classification.MulticlassConfusionMatrix(num_classes=hparams.get('num_classes_tier2'))
-        self.confmat_tier3 = classification.MulticlassConfusionMatrix(num_classes=hparams.get('num_classes_tier3'))
-        self.confmat_tier3_refined = classification.MulticlassConfusionMatrix(num_classes=hparams.get('num_classes_tier3'))
-    
     def forward(self, x):
         return self.model(x)
     
@@ -295,7 +288,6 @@ class Messis(pl.LightningModule):
         return optimizer
 
     def __step(self, batch, batch_idx, stage):
-        # NOTE: All other metrics are tracked by the LogMessisMetrics callback
         inputs, targets = batch
         outputs = self(inputs)
         loss = self.model.calculate_loss(outputs, targets)
@@ -304,11 +296,29 @@ class Messis(pl.LightningModule):
             print(f"Step Inputs shape: {safe_shape(inputs)}")
             print(f"Step Targets shape: {safe_shape(targets)}")
             print(f"Step Outputs shape: {safe_shape(outputs)}")
-        
+
+        # NOTE: All metrics other than loss are tracked by callbacks (LogMessisMetrics)
         self.log('loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {'loss': loss, 'outputs': outputs}
         
 class LogConfusionMatrix(pl.Callback):
+    def __init__(self, hparams):
+        super().__init__()
+
+        # Initialize confusion matrix for each tier
+        self.confmat_tier1 = classification.MulticlassConfusionMatrix(num_classes=hparams['tiers']['tier1']['num_classes'])
+        self.confmat_tier2 = classification.MulticlassConfusionMatrix(num_classes=hparams['tiers']['tier2']['num_classes'])
+        self.confmat_tier3 = classification.MulticlassConfusionMatrix(num_classes=hparams['tiers']['tier3']['num_classes'])
+        self.confmat_tier3_refined = classification.MulticlassConfusionMatrix(num_classes=hparams['tiers']['tier3_refined']['num_classes'])
+
+    def setup(self, trainer, pl_module, stage=None):
+        # Move all metrics to the correct device at the start of the training/validation
+        device = pl_module.device
+        self.confmat_tier1.to(device)
+        self.confmat_tier2.to(device)
+        self.confmat_tier3.to(device)
+        self.confmat_tier3_refined.to(device)
+
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         actual_outputs = outputs['outputs']
         targets = batch[1]
@@ -371,23 +381,21 @@ class LogMessisMetrics(pl.Callback):
     def __init__(self, hparams, debug=False):
         super().__init__()
 
-        assert hparams.get('num_classes_tier1') is not None, "num_classes_tier1 is required in hparams"
-        assert hparams.get('num_classes_tier2') is not None, "num_classes_tier2 is required in hparams"
-        assert hparams.get('num_classes_tier3') is not None, "num_classes_tier3 is required in hparams"
+        assert hparams.get('tiers') is not None, "Tiers must be defined in the hparams"
 
-        # TODO: move to hparams?
-        self.tiers = ['tier1', 'tier2', 'tier3', 'tier3_refined']
+        self.tiers_dict = hparams.get('tiers')
+        self.tiers = list(self.tiers_dict.keys())
         self.phases = ['train', 'val', 'test']
-        self.tiers_num_classes = ([hparams.get(f'num_classes_{tier}') for tier in self.tiers[:-1]]) + [hparams.get('num_classes_tier3')]
         self.debug = debug
-        if debug: print(f"Phases: {self.phases}, Tiers: {self.tiers}, Tiers num classes: {self.tiers_num_classes}")
+
+        if debug: print(f"Phases: {self.phases}, Tiers: {self.tiers}")
 
         # Initialize metrics
         self.metrics_to_compute = ['accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
         self.metrics = {phase: {tier: self.__init_metrics(tier, phase) for tier in self.tiers} for phase in self.phases}
 
     def __init_metrics(self, tier, phase):
-        num_classes = self.tiers_num_classes[self.tiers.index(tier)]
+        num_classes = self.tiers_dict[tier]['num_classes']
 
         accuracy = classification.MulticlassAccuracy(num_classes=num_classes, average='macro')
         per_class_accuracies = {
@@ -426,7 +434,7 @@ class LogMessisMetrics(pl.Callback):
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         self.__on_batch_end(trainer, pl_module, outputs, batch, batch_idx, 'test')
 
-    def __on_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, phase):
+    def __on_batch_end(self, trainer: pl.Trainer, pl_module, outputs, batch, batch_idx, phase):
         if trainer.sanity_checking: return
         if self.debug: print(f"{phase} batch ended. Updating metrics...")
 
@@ -439,6 +447,7 @@ class LogMessisMetrics(pl.Callback):
         assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
         assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
         for pred, target, tier in zip(preds, targets, self.tiers):
+            
             metrics = self.metrics[phase][tier]
             for metric in self.metrics_to_compute:
                 metrics[metric].update(pred, target)
