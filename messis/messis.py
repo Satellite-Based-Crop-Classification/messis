@@ -274,30 +274,8 @@ class Messis(pl.LightningModule):
             hparams.get('debug')
         )
 
-        # Initialize precision, recall, and F1-score for each tier
-        self.precision_tier1 = classification.MulticlassPrecision(num_classes=hparams.get('num_classes_tier1'), average='macro')
-        self.recall_tier1 = classification.MulticlassRecall(num_classes=hparams.get('num_classes_tier1'), average='macro')
-        self.f1_tier1 = classification.MulticlassF1Score(num_classes=hparams.get('num_classes_tier1'), average='macro')
-
-        self.precision_tier2 = classification.MulticlassPrecision(num_classes=hparams.get('num_classes_tier2'), average='macro')
-        self.recall_tier2 = classification.MulticlassRecall(num_classes=hparams.get('num_classes_tier2'), average='macro')
-        self.f1_tier2 = classification.MulticlassF1Score(num_classes=hparams.get('num_classes_tier2'), average='macro')
-
-        self.precision_tier3 = classification.MulticlassPrecision(num_classes=hparams.get('num_classes_tier3'), average='macro')
-        self.recall_tier3 = classification.MulticlassRecall(num_classes=hparams.get('num_classes_tier3'), average='macro')
-        self.f1_tier3 = classification.MulticlassF1Score(num_classes=hparams.get('num_classes_tier3'), average='macro')
-
-        self.precision_tier3_refined = classification.MulticlassPrecision(num_classes=hparams.get('num_classes_tier3'), average='macro')
-        self.recall_tier3_refined = classification.MulticlassRecall(num_classes=hparams.get('num_classes_tier3'), average='macro')
-        self.f1_tier3_refined = classification.MulticlassF1Score(num_classes=hparams.get('num_classes_tier3'), average='macro')
-
-        # Initialize cohen's kappa score for each tier
-        self.cohen_kappa_tier1 = classification.MulticlassCohenKappa(num_classes=hparams.get('num_classes_tier1'))
-        self.cohen_kappa_tier2 = classification.MulticlassCohenKappa(num_classes=hparams.get('num_classes_tier2'))
-        self.cohen_kappa_tier3 = classification.MulticlassCohenKappa(num_classes=hparams.get('num_classes_tier3'))
-        self.cohen_kappa_tier3_refined = classification.MulticlassCohenKappa(num_classes=hparams.get('num_classes_tier3'))
-
         # Initialize confusion matrix for each tier
+        # TODO: Move to ConfusionMatrixCallback
         self.confmat_tier1 = classification.MulticlassConfusionMatrix(num_classes=hparams.get('num_classes_tier1'))
         self.confmat_tier2 = classification.MulticlassConfusionMatrix(num_classes=hparams.get('num_classes_tier2'))
         self.confmat_tier3 = classification.MulticlassConfusionMatrix(num_classes=hparams.get('num_classes_tier3'))
@@ -317,6 +295,7 @@ class Messis(pl.LightningModule):
         return optimizer
 
     def __step(self, batch, batch_idx, stage):
+        # NOTE: All other metrics are tracked by the LogMessisMetrics callback
         inputs, targets = batch
         outputs = self(inputs)
         loss = self.model.calculate_loss(outputs, targets)
@@ -325,84 +304,9 @@ class Messis(pl.LightningModule):
             print(f"Step Inputs shape: {safe_shape(inputs)}")
             print(f"Step Targets shape: {safe_shape(targets)}")
             print(f"Step Outputs shape: {safe_shape(outputs)}")
-
-        # Calculate metrics
-        prf_metrics = self.__calculate_precision_recall_f1(outputs, targets)
-        cohen_kappa_metrics = self.__calculate_cohens_kappa(outputs, targets)
-
-        # Log all metrics in one go
-        metrics = {
-            **prf_metrics, # Precision, Recall, F1
-            **cohen_kappa_metrics # Cohen's Kappa
-        }
-
-        # Extend metrics dict with stage as prefix
-        metrics = {f"{stage}_{k}": v for k, v in metrics.items()}
-
+        
         self.log('loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.log_dict(metrics, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         return {'loss': loss, 'outputs': outputs}
-
-    def __calculate_precision_recall_f1(self, outputs, targets):
-        output_tier1, output_tier2, output_tier3, output_tier3_refined = outputs
-        target_tier1, target_tier2, target_tier3 = targets
-
-        preds_tier1 = torch.softmax(output_tier1, dim=1).argmax(dim=1)
-        preds_tier2 = torch.softmax(output_tier2, dim=1).argmax(dim=1)
-        preds_tier3 = torch.softmax(output_tier3, dim=1).argmax(dim=1)
-        preds_tier3_refined = torch.softmax(output_tier3_refined, dim=1).argmax(dim=1)
-
-        precision_tier1 = self.precision_tier1(preds_tier1, target_tier1)
-        recall_tier1 = self.recall_tier1(preds_tier1, target_tier1)
-        f1_tier1 = self.f1_tier1(preds_tier1, target_tier1)
-
-        precision_tier2 = self.precision_tier2(preds_tier2, target_tier2)
-        recall_tier2 = self.recall_tier2(preds_tier2, target_tier2)
-        f1_tier2 = self.f1_tier2(preds_tier2, target_tier2)
-
-        precision_tier3 = self.precision_tier3(preds_tier3, target_tier3)
-        recall_tier3 = self.recall_tier3(preds_tier3, target_tier3)
-        f1_tier3 = self.f1_tier3(preds_tier3, target_tier3)
-
-        precision_tier3_refined = self.precision_tier3_refined(preds_tier3_refined, target_tier3)
-        recall_tier3_refined = self.recall_tier3_refined(preds_tier3_refined, target_tier3)
-        f1_tier3_refined = self.f1_tier3_refined(preds_tier3_refined, target_tier3)
-
-        return {
-            'precision_tier1': precision_tier1,
-            'recall_tier1': recall_tier1,
-            'f1_tier1': f1_tier1,
-            'precision_tier2': precision_tier2,
-            'recall_tier2': recall_tier2,
-            'f1_tier2': f1_tier2,
-            'precision_tier3': precision_tier3,
-            'recall_tier3': recall_tier3,
-            'f1_tier3': f1_tier3,
-            'precision_tier3_refined': precision_tier3_refined,
-            'recall_tier3_refined': recall_tier3_refined,
-            'f1_tier3_refined': f1_tier3_refined
-        }
-    
-    def __calculate_cohens_kappa(self, outputs, targets):
-        output_tier1, output_tier2, output_tier3, output_tier3_refined = outputs
-        target_tier1, target_tier2, target_tier3 = targets
-
-        preds_tier1 = torch.softmax(output_tier1, dim=1).argmax(dim=1)
-        preds_tier2 = torch.softmax(output_tier2, dim=1).argmax(dim=1)
-        preds_tier3 = torch.softmax(output_tier3, dim=1).argmax(dim=1)
-        preds_tier3_refined = torch.softmax(output_tier3_refined, dim=1).argmax(dim=1)
-
-        cohen_kappa_tier1 = self.cohen_kappa_tier1(preds_tier1, target_tier1)
-        cohen_kappa_tier2 = self.cohen_kappa_tier2(preds_tier2, target_tier2)
-        cohen_kappa_tier3 = self.cohen_kappa_tier3(preds_tier3, target_tier3)
-        cohen_kappa_tier3_refined = self.cohen_kappa_tier3_refined(preds_tier3_refined, target_tier3)
-
-        return {
-            'cohen_kappa_tier1': cohen_kappa_tier1,
-            'cohen_kappa_tier2': cohen_kappa_tier2,
-            'cohen_kappa_tier3': cohen_kappa_tier3,
-            'cohen_kappa_tier3_refined': cohen_kappa_tier3_refined
-        }
         
 class LogConfusionMatrix(pl.Callback):
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
@@ -463,7 +367,7 @@ class LogConfusionMatrix(pl.Callback):
                 y_true.extend([i] * count)
         return preds, y_true
     
-class LogAccuracyMetrics(pl.Callback):
+class LogMessisMetrics(pl.Callback):
     def __init__(self, hparams):
         super().__init__()
 
@@ -471,27 +375,44 @@ class LogAccuracyMetrics(pl.Callback):
         assert hparams.get('num_classes_tier2') is not None, "num_classes_tier2 is required in hparams"
         assert hparams.get('num_classes_tier3') is not None, "num_classes_tier3 is required in hparams"
 
-        # TODO: move to hparams
+        # TODO: move to hparams?
         self.tiers = ['tier1', 'tier2', 'tier3', 'tier3_refined']
         self.phases = ['train', 'val', 'test']
         self.tiers_num_classes = ([hparams.get(f'num_classes_{tier}') for tier in self.tiers[:-1]]) + [hparams.get('num_classes_tier3')]
+        print(f"Tier num classes: {self.tiers_num_classes}")
 
+        # Initialize metrics
+        self.metrics_to_compute = ['accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
         self.metrics = {phase: {tier: self.__init_metrics(tier, phase) for tier in self.tiers} for phase in self.phases}
 
     def __init_metrics(self, tier, phase):
         num_classes = self.tiers_num_classes[self.tiers.index(tier)]
+
         accuracy = classification.MulticlassAccuracy(num_classes=num_classes, average='macro')
         per_class_accuracies = {
             class_index: classification.MulticlassAccuracy(num_classes=num_classes, average='macro') for class_index in range(num_classes)
         }
-        return {'accuracy': accuracy, 'per_class_accuracies': per_class_accuracies}
+        precision = classification.MulticlassPrecision(num_classes=num_classes, average='macro')
+        recall = classification.MulticlassRecall(num_classes=num_classes, average='macro')
+        f1 = classification.MulticlassF1Score(num_classes=num_classes, average='macro')
+        cohen_kappa = classification.MulticlassCohenKappa(num_classes=num_classes)
+
+        return {
+            'accuracy': accuracy,
+            'per_class_accuracies': per_class_accuracies,
+            'precision': precision,
+            'recall': recall,
+            'f1': f1,
+            'cohen_kappa': cohen_kappa
+        }
 
     def setup(self, trainer, pl_module, stage=None):
         # Move all metrics to the correct device at the start of the training/validation
         device = pl_module.device
         for phase_metrics in self.metrics.values():
             for tier_metrics in phase_metrics.values():
-                tier_metrics['accuracy'].to(device)
+                for metric in self.metrics_to_compute:
+                    tier_metrics[metric].to(device)
                 for class_accuracy in tier_metrics['per_class_accuracies'].values():
                     class_accuracy.to(device)
 
@@ -510,12 +431,16 @@ class LogAccuracyMetrics(pl.Callback):
         targets = batch[1]
         preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
 
+        # Update all metrics
         for pred, target, tier in zip(preds, targets, self.tiers):
+            # TODO: check why tier3_refined is not being updated???
             metrics = self.metrics[phase][tier]
-            metrics['accuracy'].update(pred, target)
+            for metric in self.metrics_to_compute:
+                metrics[metric].update(pred, target)
+                print(f"{phase} {tier} {metric} updated. Update count {metrics[metric]._update_count}")
             self.__update_per_class_accuracy(pred, target, metrics['per_class_accuracies'])
 
-        # print(f"{phase} batch ended. Updating accuracy metrics...", targets[0].shape)
+        print(f"{phase} batch ended. Updating metrics...", targets[0].shape)
 
     def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
         for class_index, class_accuracy in per_class_accuracies.items():
@@ -538,11 +463,18 @@ class LogAccuracyMetrics(pl.Callback):
         for tier in self.tiers:
             metrics = self.metrics[phase][tier]
 
-            # Accuracy in tier
-            accuracy = metrics['accuracy'].compute()
-            accuracies.append(accuracy)
-            pl_module.log(f"{phase}_accuracy_{tier}", accuracy, on_step=False, on_epoch=True)
-            metrics['accuracy'].reset()
+            # Print number of updates for each metric
+            for metric in self.metrics_to_compute:
+                print(f"END: {phase} {tier} {metric} update count: {metrics[metric]._update_count}")
+
+            # Calculate and reset in tier: Accuracy, Precision, Recall, F1, Cohen's Kappa
+            metrics_dict = {metric: metrics[metric].compute() for metric in self.metrics_to_compute}
+            pl_module.log_dict({f"{phase}_{metric}_{tier}": v for metric, v in metrics_dict.items()}, on_step=False, on_epoch=True)
+            for metric in self.metrics_to_compute:
+                metrics[metric].reset()
+
+            # Collect accuracies for overall accuracy calculation
+            accuracies.append(metrics_dict['accuracy'])
 
             # Per-class accuracy in tier
             for class_index, class_accuracy in metrics['per_class_accuracies'].items():
@@ -554,4 +486,4 @@ class LogAccuracyMetrics(pl.Callback):
         overall_accuracy = sum(accuracies) / len(accuracies)
         pl_module.log(f"{phase}_accuracy_overall", overall_accuracy, on_step=False, on_epoch=True)
 
-        # print(f"{phase} epoch ended. Logging & resetting accuracy metrics...", trainer.sanity_checking)
+        print(f"{phase} epoch ended. Logging & resetting metrics...", trainer.sanity_checking)
