@@ -20,7 +20,7 @@ stages:
     outs:
     - path: data/satellite
       hash: md5
-      md5: 067d6cec62d584e27c7cc001649ef10b.dir
+      md5: 9a012248489b6cee4631071869d068f4.dir
       size: 714197897
       nfiles: 194
   rasterize:
@@ -56,7 +56,7 @@ stages:
       size: 5970
     - path: data/satellite
       hash: md5
-      md5: 067d6cec62d584e27c7cc001649ef10b.dir
+      md5: 9a012248489b6cee4631071869d068f4.dir
       size: 714197897
       nfiles: 194
     - path: rasterize_labels.ipynb
@@ -78,26 +78,26 @@ stages:
     outs:
     - path: data/field_ids.tif
       hash: md5
-      md5: db671ed210358ab703e5984862cbffd3
+      md5: a52839a3bc7a4e4bb673a1f1ef741692
       size: 104888680
     - path: data/labels.tif
       hash: md5
-      md5: b1d35f4be4922ef210a195605cb3a525
+      md5: fcc5cc97d5c3cabf568c9ec053ff994f
       size: 26245480
     - path: data/labels_hierarchy.tif
       hash: md5
-      md5: 92d349d792ad7e2d5370791a32a76ae6
+      md5: 65ebb2ac0667f3998f1f90e4fdbaddc7
       size: 78674292
   prepare-dataset:
     cmd: papermill prepare_dataset.ipynb prepare_dataset.output.ipynb && rm prepare_dataset.output.ipynb
     deps:
     - path: data/labels_hierarchy.tif
       hash: md5
-      md5: 92d349d792ad7e2d5370791a32a76ae6
+      md5: 65ebb2ac0667f3998f1f90e4fdbaddc7
       size: 78674292
     - path: data/satellite
       hash: md5
-      md5: 067d6cec62d584e27c7cc001649ef10b.dir
+      md5: 9a012248489b6cee4631071869d068f4.dir
       size: 714197897
       nfiles: 194
     - path: prepare_dataset.ipynb
@@ -123,7 +123,7 @@ stages:
       nfiles: 806
     - path: data/stacked_features.tif
       hash: md5
-      md5: 1d3a1b0eee2a26926ad9b5b49c961d13
+      md5: afa429abbea631e0421db110b432776c
       size: 943759838
   calculate-dataset-stats:
     cmd: papermill calculate_dataset_stats.ipynb calculate_dataset_stats.output.ipynb
@@ -140,7 +140,7 @@ stages:
       nfiles: 806
     - path: data/labels_hierarchy.tif
       hash: md5
-      md5: 92d349d792ad7e2d5370791a32a76ae6
+      md5: 65ebb2ac0667f3998f1f90e4fdbaddc7
       size: 78674292
     params:
       params.yaml:
