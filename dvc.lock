@@ -102,11 +102,11 @@ stages:
       nfiles: 194
     - path: prepare_dataset.ipynb
       hash: md5
-      md5: ba8908f7365303044a0e4a9bb134f709
-      size: 6007424
+      md5: aeffbdf6ce1cca270c2a57437b3c76ad
+      size: 5475153
     params:
       params.yaml:
-        chip_size: 256
+        chip_size: 224
         number_of_folds: 5
         paths.field_ids: data/field_ids.tif
         paths.labels: data/labels.tif
@@ -118,9 +118,9 @@ stages:
     outs:
     - path: data/chips
       hash: md5
-      md5: ba2de5a5e0e3784615c544727cb2af23.dir
-      size: 885699796
-      nfiles: 692
+      md5: fdd04fd1fba92e00918ffd2f774e6c85.dir
+      size: 790042006
+      nfiles: 806
     - path: data/stacked_features.tif
       hash: md5
       md5: afa429abbea631e0421db110b432776c
@@ -131,13 +131,13 @@ stages:
     deps:
     - path: calculate_dataset_stats.ipynb
       hash: md5
-      md5: 560fefbd93e56f3cf7b6953029cb9e91
-      size: 5143
+      md5: 7f16a72b9b4c6e2bea6b55e06c761dc8
+      size: 5142
     - path: data/chips
       hash: md5
-      md5: ba2de5a5e0e3784615c544727cb2af23.dir
-      size: 885699796
-      nfiles: 692
+      md5: fdd04fd1fba92e00918ffd2f774e6c85.dir
+      size: 790042006
+      nfiles: 806
     - path: data/labels_hierarchy.tif
       hash: md5
       md5: 65ebb2ac0667f3998f1f90e4fdbaddc7
@@ -152,16 +152,16 @@ stages:
     outs:
     - path: data/chips_fold_stats.yaml
       hash: md5
-      md5: c6a6e9168a81e5ad9acce1636f08375e
-      size: 1716
+      md5: 3627acd4f96cec496e4c1243fa41526b
+      size: 1789
   download-prithvi-base-model:
     cmd: papermill download_prithvi_100M.ipynb download_prithvi_100M.output.ipynb
       && rm download_prithvi_100M.output.ipynb
     deps:
     - path: download_prithvi_100M.ipynb
       hash: md5
-      md5: 40b7a4b862a6257861f0fe8d67541e61
-      size: 1016
+      md5: 2448243159ec94c6d413447c59b1e9d8
+      size: 1066
     outs:
     - path: prithvi/models/Prithvi_100M.pt
       hash: md5

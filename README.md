@@ -24,9 +24,23 @@ To install new packages, use the following command, but make sure you have exite
 poetry add <package>
 ```
 
+Setup DVC:
+
+1. Get a service account JSON file from Google Cloud Platform and place it in the `.dvc` directory.
+
+2. Initialize DVC:
+```bash
+dvc remote modify gdrive --local gdrive_service_account_json_file_path .dvc/service-account.json
+```
+
+3. Pull the data:
+```bash
+dvc pull
+```
 ### MMCV Environment Setup (optional)
 
 Set up this environment to run Prithvi with the MMCV/MMSegmentation framework (see `prithvi` folder).
+
 This environment is as described in `hls-foundation-os`:
 
 ```bash
