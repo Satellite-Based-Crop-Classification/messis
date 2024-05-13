@@ -527,17 +527,8 @@ class LogMessisMetrics(pl.Callback):
 
             # Collect accuracies for overall accuracy calculation
             accuracies.append(metrics_dict['accuracy'])
-
-            """# Per-class accuracy in tier
-            for class_index, class_accuracy in metrics['per_class_accuracies'].items():
-                if class_accuracy._update_count == 0:
-                    continue # Skip if no updates have been made (no samples of this class in the processed dataset partition)
-                class_accuracy_value = class_accuracy.compute()
-                pl_module.log(f"{phase}_accuracy_{tier}_class_{class_index}", class_accuracy_value, on_step=False, on_epoch=True)
-                class_accuracy.reset()"""
-
             class_names_mapping = self.feature_names_by_tier[tier.split('_')[0] if '_refined' in tier else tier] 
-            
+
             class_accuracies = []
             for class_index, class_accuracy in metrics['per_class_accuracies'].items():
                 if class_accuracy._update_count == 0:
