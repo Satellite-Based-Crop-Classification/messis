@@ -317,6 +317,7 @@ class LogConfusionMatrix(pl.Callback):
         self.tiers_dict = hparams.get('tiers')
         self.tiers = list(hparams.get('tiers').keys())
         self.phases = ['train', 'val', 'test']
+        self.modes = ['original', 'majority']
         self.debug = debug
         
         with open(feature_names_file, 'r') as f:
@@ -324,7 +325,7 @@ class LogConfusionMatrix(pl.Callback):
 
         # Initialize confusion matrices
         self.metrics_to_compute = ['confusion_matrix']
-        self.metrics = {phase: {tier: self.__init_metrics(tier, phase) for tier in self.tiers} for phase in self.phases}
+        self.metrics = {phase: {tier: {mode: self.__init_metrics(tier, phase) for mode in self.modes} for tier in self.tiers} for phase in self.phases}
 
     def __init_metrics(self, tier, phase):
         num_classes = self.tiers_dict[tier]['num_classes']
@@ -339,8 +340,9 @@ class LogConfusionMatrix(pl.Callback):
         device = pl_module.device
         for phase_metrics in self.metrics.values():
             for tier_metrics in phase_metrics.values():
-                for metric in self.metrics_to_compute:
-                    tier_metrics[metric].to(device)
+                for mode_metrics in tier_metrics.values():
+                    for metric in self.metrics_to_compute:
+                        mode_metrics[metric].to(device)
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         self.__update_confusion_matrices(trainer, pl_module, outputs, batch, batch_idx, 'train')
@@ -358,17 +360,37 @@ class LogConfusionMatrix(pl.Callback):
         outputs = outputs['outputs']
         tier1_targets, tier2_targets, tier3_targets = batch[1][0]
         targets = [tier1_targets, tier2_targets, tier3_targets, tier3_targets]
-        preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
+        original_preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
+        
+        # TODO
+        field_ids = batch[1][1]
+        majority_preds = LogConfusionMatrix.get_field_majority_preds(original_preds, field_ids)
+        
+        for preds, mode in zip([original_preds, majority_preds], ['original', 'majority']):
+            # Update all metrics
+            assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
+            assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
 
-        # Update all metrics
-        assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
-        assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
+            for pred, target, tier in zip(preds, targets, self.tiers):
+                if self.debug:
+                    print(f"Updating confusion matrix for {phase} {tier} {mode}")
+                metrics = self.metrics[phase][tier][mode]
+                metrics['confusion_matrix'].update(pred, target)
 
-        for pred, target, tier in zip(preds, targets, self.tiers):
-            if self.debug:
-                print(f"Updating confusion matrix for {phase} {tier}")
-            metrics = self.metrics[phase][tier]
-            metrics['confusion_matrix'].update(pred, target)
+    @staticmethod
+    def get_field_majority_preds(original_preds, field_ids):
+        majority_preds = []
+        for pred_batch, field_ids_batch in zip(original_preds, field_ids):
+            # apply majority voting
+            majority_pred = torch.zeros_like(pred_batch)
+            for i, (pred_chip, field_ids_chip) in enumerate(zip(pred_batch, field_ids_batch)):
+                for field_id in np.unique(field_ids_chip.cpu().numpy()):
+                    field_mask = field_ids_chip == field_id
+                    # get the most common prediction
+                    majority_pred[i][field_mask] = int(torch.mode(torch.flatten(pred_chip[field_mask]))[0])
+                # append to new_preds
+            majority_preds.append(majority_pred)
+        return majority_preds
 
     def on_train_epoch_end(self, trainer, pl_module):
         # Log and then reset the confusion matrices after training epoch
@@ -385,33 +407,36 @@ class LogConfusionMatrix(pl.Callback):
     def __log_and_reset_confusion_matrices(self, trainer, pl_module, phase):
         if trainer.sanity_checking:
             return
+        
+
 
         for tier in self.tiers:
-            metrics = self.metrics[phase][tier]
-            confusion_matrix = metrics['confusion_matrix']
-            if self.debug:
-                print(f"Logging and resetting confusion matrix for {phase} {tier} Update count: {confusion_matrix._update_count}")
-            matrix = confusion_matrix.compute()
+            for mode in self.modes:
+                metrics = self.metrics[phase][tier][mode]
+                confusion_matrix = metrics['confusion_matrix']
+                if self.debug:
+                    print(f"Logging and resetting confusion matrix for {phase} {tier} Update count: {confusion_matrix._update_count}")
+                matrix = confusion_matrix.compute()
 
-            fig, ax = plt.subplots(figsize=(matrix.size(0), matrix.size(0)), dpi=100)
+                fig, ax = plt.subplots(figsize=(matrix.size(0), matrix.size(0)), dpi=100)
 
-            ax.matshow(matrix.cpu().numpy(), cmap='viridis')
+                ax.matshow(matrix.cpu().numpy(), cmap='viridis')
 
-            ax.xaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(1)+1)))
-            ax.yaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(0)+1)))
+                ax.xaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(1)+1)))
+                ax.yaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(0)+1)))
 
-            clean_tier = tier.split('_')[0] if '_refined' in tier else tier
-            ax.set_xticklabels(self.feature_names_by_tier[clean_tier] + [''], rotation=45)
-            ax.set_yticklabels(self.feature_names_by_tier[clean_tier] + [''])
+                clean_tier = tier.split('_')[0] if '_refined' in tier else tier
+                ax.set_xticklabels(self.feature_names_by_tier[clean_tier] + [''], rotation=45)
+                ax.set_yticklabels(self.feature_names_by_tier[clean_tier] + [''])
 
-            fig.tight_layout()
+                fig.tight_layout()
 
-            for i in range(matrix.size(0)):
-                for j in range(matrix.size(1)):
-                    ax.text(j, i, f'{matrix[i, j]:.0f}', ha='center', va='center')
-            trainer.logger.experiment.log({f"{phase}_{tier}_confusion_matrix": wandb.Image(fig)})
-            plt.close()
-            confusion_matrix.reset()
+                for i in range(matrix.size(0)):
+                    for j in range(matrix.size(1)):
+                        ax.text(j, i, f'{matrix[i, j]:.0f}', ha='center', va='center')
+                trainer.logger.experiment.log({f"{phase}_{tier}_confusion_matrix_{mode}": wandb.Image(fig)})
+                plt.close()
+                confusion_matrix.reset()
 
     
 class LogMessisMetrics(pl.Callback):
@@ -423,18 +448,20 @@ class LogMessisMetrics(pl.Callback):
         self.tiers_dict = hparams.get('tiers')
         self.tiers = list(self.tiers_dict.keys())
         self.phases = ['train', 'val', 'test']
+        self.modes = ['original', 'majority']
         self.debug = debug
 
         if debug:
-            print(f"Phases: {self.phases}, Tiers: {self.tiers}")
+            print(f"Phases: {self.phases}, Tiers: {self.tiers}, Modes: {self.modes}")
 
         with open(feature_names_file, 'r') as f:
             self.feature_names_by_tier = json.load(f)
 
         # Initialize metrics
         self.metrics_to_compute = ['accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
-        self.metrics = {phase: {tier: self.__init_metrics(tier, phase) for tier in self.tiers} for phase in self.phases}
-        self.random_image = {phase: None for phase in self.phases}
+        self.metrics = {phase: {tier: {mode: self.__init_metrics(tier, phase) for mode in self.modes} for tier in self.tiers} for phase in self.phases}
+        self.images_to_log = {phase: {mode: None for mode in self.modes} for phase in self.phases}
+        self.images_to_log_targets = {phase: None for phase in self.phases}
 
     def __init_metrics(self, tier, phase):
         num_classes = self.tiers_dict[tier]['num_classes']
@@ -462,10 +489,11 @@ class LogMessisMetrics(pl.Callback):
         device = pl_module.device
         for phase_metrics in self.metrics.values():
             for tier_metrics in phase_metrics.values():
-                for metric in self.metrics_to_compute:
-                    tier_metrics[metric].to(device)
-                for class_accuracy in tier_metrics['per_class_accuracies'].values():
-                    class_accuracy.to(device)
+                for mode_metrics in tier_metrics.values():
+                    for metric in self.metrics_to_compute:
+                        mode_metrics[metric].to(device)
+                    for class_accuracy in mode_metrics['per_class_accuracies'].values():
+                        class_accuracy.to(device)
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         self.__on_batch_end(trainer, pl_module, outputs, batch, batch_idx, 'train')
@@ -485,28 +513,28 @@ class LogMessisMetrics(pl.Callback):
         outputs = outputs['outputs']
         tier1_targets, tier2_targets, tier3_targets = batch[1][0]
         targets = [tier1_targets, tier2_targets, tier3_targets, tier3_targets]
-        preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
+        original_preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs] # list of 4 tensors with shape (B, H, W)
 
+        field_ids = batch[1][1]
+        majority_preds = LogConfusionMatrix.get_field_majority_preds(original_preds, field_ids)
+        
 
-        # Update all metrics
-        assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
-        assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
-        
-        # get a random prediction for logging
-        # [labels_tier3_refined][first image]
-        img = preds[3][0]#[random.randint(0, preds[3].shape[0]-1)]
-        #print(f"len(img): {len(img)}")
-        #print(f"shapes: {img[0].shape}, {img[1].shape}, {img[2].shape}, {img[3].shape}")
-        print(f"img shape: {img.shape}")
-        self.random_image[phase] = img
-        
-        for pred, target, tier in zip(preds, targets, self.tiers):
-            metrics = self.metrics[phase][tier]
-            for metric in self.metrics_to_compute:
-                metrics[metric].update(pred, target)
-                if self.debug:
-                    print(f"{phase} {tier} {metric} updated. Update count: {metrics[metric]._update_count}")
-            self.__update_per_class_accuracy(pred, target, metrics['per_class_accuracies'])
+        for preds, mode in zip([original_preds, majority_preds], ['original', 'majority']):
+            # Update all metrics
+            assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
+            assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
+            
+            self.images_to_log[phase][mode] = preds[3]
+            
+            for pred, target, tier in zip(preds, targets, self.tiers):
+                metrics = self.metrics[phase][tier][mode]
+                for metric in self.metrics_to_compute:
+                    metrics[metric].update(pred, target)
+                    if self.debug:
+                        print(f"{phase} {tier} {mode} {metric} updated. Update count: {metrics[metric]._update_count}")
+                self.__update_per_class_accuracy(pred, target, metrics['per_class_accuracies'])
+
+        self.images_to_log_targets[phase] = targets[3]
 
     def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
         for class_index, class_accuracy in per_class_accuracies.items():
@@ -530,42 +558,58 @@ class LogMessisMetrics(pl.Callback):
             return # Skip during sanity check (avoid warning about metric compute being called before update)
         accuracies = []
         for tier in self.tiers:
-            metrics = self.metrics[phase][tier]
+            for mode in self.modes:
+                metrics = self.metrics[phase][tier][mode]
 
-            # Calculate and reset in tier: Accuracy, Precision, Recall, F1, Cohen's Kappa
-            metrics_dict = {metric: metrics[metric].compute() for metric in self.metrics_to_compute}
-            pl_module.log_dict({f"{phase}_{metric}_{tier}": v for metric, v in metrics_dict.items()}, on_step=False, on_epoch=True)
-            for metric in self.metrics_to_compute:
-                metrics[metric].reset()
+                # Calculate and reset in tier: Accuracy, Precision, Recall, F1, Cohen's Kappa
+                metrics_dict = {metric: metrics[metric].compute() for metric in self.metrics_to_compute}
+                pl_module.log_dict({f"{phase}_{metric}_{tier}_{mode}": v for metric, v in metrics_dict.items()}, on_step=False, on_epoch=True)
+                for metric in self.metrics_to_compute:
+                    metrics[metric].reset()
 
-            # Collect accuracies for overall accuracy calculation
-            accuracies.append(metrics_dict['accuracy'])
-            class_names_mapping = self.feature_names_by_tier[tier.split('_')[0] if '_refined' in tier else tier] 
+                # Collect accuracies for overall accuracy calculation
+                accuracies.append(metrics_dict['accuracy'])
+                class_names_mapping = self.feature_names_by_tier[tier.split('_')[0] if '_refined' in tier else tier] 
 
-            class_accuracies = []
-            for class_index, class_accuracy in metrics['per_class_accuracies'].items():
-                if class_accuracy._update_count == 0:
-                    continue  # Skip if no updates have been made
-                class_accuracies.append([class_index, class_names_mapping[class_index], class_accuracy.compute()])
-            wandb_table = wandb.Table(data=class_accuracies, columns=["Class Index", "Class Name", "Accuracy"])
+                class_accuracies = []
+                for class_index, class_accuracy in metrics['per_class_accuracies'].items():
+                    if class_accuracy._update_count == 0:
+                        continue  # Skip if no updates have been made
+                    class_accuracies.append([class_index, class_names_mapping[class_index], class_accuracy.compute()])
+                wandb_table = wandb.Table(data=class_accuracies, columns=["Class Index", "Class Name", "Accuracy"])
 
-            # Log the table
-            trainer.logger.experiment.log({f"{phase}_per_class_accuracy_{tier}": wandb_table})
+                # Log the table
+                trainer.logger.experiment.log({f"{phase}_per_class_accuracies_{tier}_{mode}": wandb_table})
 
-            # Reset the per-class accuracies
-            for class_accuracy in metrics['per_class_accuracies'].values():
-                class_accuracy.reset()
+                # Reset the per-class accuracies
+                for class_accuracy in metrics['per_class_accuracies'].values():
+                    class_accuracy.reset()
 
-        img = self.random_image[phase] # shape: (H, W)
-        normalized_img = img / torch.max(img).item()
-        colored_img = plt.cm.viridis(normalized_img.cpu().numpy())
-        colored_img_uint8 = (colored_img[:, :, :3] * 255).astype(np.uint8)
+        for mode in self.modes:
+            imgs = self.images_to_log[phase][mode] # shape: (BATCH, H, W)
+            normalized_img = imgs / torch.max(imgs).item()
+            wandb_imgs = []
+            for img in normalized_img.cpu().numpy():
+                colored_img = plt.cm.viridis(img)
+                colored_img_uint8 = (colored_img[:, :, :3] * 255).astype(np.uint8)
+                wandb_imgs.append(wandb.Image(colored_img_uint8))
 
-        trainer.logger.experiment.log({f"{phase}_random_image": wandb.Image(colored_img_uint8)})
+            trainer.logger.experiment.log({f"{phase}_images_{mode}": wandb_imgs})
 
-        # Overall accuracy
-        overall_accuracy = sum(accuracies) / len(accuracies)
-        pl_module.log(f"{phase}_accuracy_overall", overall_accuracy, on_step=False, on_epoch=True)
+            # Overall accuracy
+            overall_accuracy = sum(accuracies) / len(accuracies)
+            pl_module.log(f"{phase}_accuracy_overall{mode}", overall_accuracy, on_step=False, on_epoch=True)
+
+        # log the target image on level3
+        imgs = self.images_to_log_targets[phase]
+        normalized_img = imgs / torch.max(imgs).item()
+        wandb_target_imgs = []
+        for img in normalized_img.cpu().numpy():
+            colored_img = plt.cm.viridis(img)
+            colored_img_uint8 = (colored_img[:, :, :3] * 255).astype(np.uint8)
+            wandb_target_imgs.append(wandb.Image(colored_img_uint8))
+
+        trainer.logger.experiment.log({f"{phase}_targets": wandb_target_imgs})
 
         if self.debug:
             print(f"{phase} epoch ended. Logging & resetting metrics...", trainer.sanity_checking)
