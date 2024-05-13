@@ -8,7 +8,6 @@ import numpy as np
 import matplotlib.ticker as ticker
 
 import json
-import random
 
 from messis.prithvi import TemporalViTEncoder, ConvTransformerTokensToEmbeddingNeck
 
