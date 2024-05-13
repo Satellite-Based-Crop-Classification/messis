@@ -157,7 +157,7 @@ class GeospatialDataset(Dataset):
         targets_tier2 = mask[1, :, :].type(torch.long)
         targets_tier3 = mask[2, :, :].type(torch.long)
         
-        return img, (targets_tier1, targets_tier2, targets_tier3), field_ids
+        return img, ((targets_tier1, targets_tier2, targets_tier3), field_ids)
 
 class GeospatialDataModule(LightningDataModule):
     def __init__(self, data_dir, test_fold, batch_size=8, num_workers=4, crop_to=None, debug=False, subsets=None):

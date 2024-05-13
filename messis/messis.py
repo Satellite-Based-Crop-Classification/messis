@@ -4,9 +4,11 @@ import pytorch_lightning as pl
 from torchmetrics import classification
 import wandb
 from matplotlib import pyplot as plt
+import numpy as np
 import matplotlib.ticker as ticker
 
 import json
+import random
 
 from messis.prithvi import TemporalViTEncoder, ConvTransformerTokensToEmbeddingNeck
 
@@ -293,6 +295,7 @@ class Messis(pl.LightningModule):
 
     def __step(self, batch, batch_idx, stage):
         inputs, targets = batch
+        targets = targets[0]
         outputs = self(inputs)
         loss = self.model.calculate_loss(outputs, targets)
 
@@ -353,7 +356,7 @@ class LogConfusionMatrix(pl.Callback):
             return
 
         outputs = outputs['outputs']
-        tier1_targets, tier2_targets, tier3_targets = batch[1]
+        tier1_targets, tier2_targets, tier3_targets = batch[1][0]
         targets = [tier1_targets, tier2_targets, tier3_targets, tier3_targets]
         preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
 
@@ -431,6 +434,7 @@ class LogMessisMetrics(pl.Callback):
         # Initialize metrics
         self.metrics_to_compute = ['accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
         self.metrics = {phase: {tier: self.__init_metrics(tier, phase) for tier in self.tiers} for phase in self.phases}
+        self.random_image = {phase: None for phase in self.phases}
 
     def __init_metrics(self, tier, phase):
         num_classes = self.tiers_dict[tier]['num_classes']
@@ -479,13 +483,22 @@ class LogMessisMetrics(pl.Callback):
             print(f"{phase} batch ended. Updating metrics...")
 
         outputs = outputs['outputs']
-        tier1_targets, tier2_targets, tier3_targets = batch[1]
+        tier1_targets, tier2_targets, tier3_targets = batch[1][0]
         targets = [tier1_targets, tier2_targets, tier3_targets, tier3_targets]
         preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
+
 
         # Update all metrics
         assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
         assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
+        
+        # get a random prediction for logging
+        # [labels_tier3_refined][first image]
+        img = preds[3][0]#[random.randint(0, preds[3].shape[0]-1)]
+        #print(f"len(img): {len(img)}")
+        #print(f"shapes: {img[0].shape}, {img[1].shape}, {img[2].shape}, {img[3].shape}")
+        print(f"img shape: {img.shape}")
+        self.random_image[phase] = img
         
         for pred, target, tier in zip(preds, targets, self.tiers):
             metrics = self.metrics[phase][tier]
@@ -542,6 +555,13 @@ class LogMessisMetrics(pl.Callback):
             # Reset the per-class accuracies
             for class_accuracy in metrics['per_class_accuracies'].values():
                 class_accuracy.reset()
+
+        img = self.random_image[phase] # shape: (H, W)
+        normalized_img = img / torch.max(img).item()
+        colored_img = plt.cm.viridis(normalized_img.cpu().numpy())
+        colored_img_uint8 = (colored_img[:, :, :3] * 255).astype(np.uint8)
+
+        trainer.logger.experiment.log({f"{phase}_random_image": wandb.Image(colored_img_uint8)})
 
         # Overall accuracy
         overall_accuracy = sum(accuracies) / len(accuracies)
