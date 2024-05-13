@@ -3,6 +3,10 @@ import torch.nn as nn
 import pytorch_lightning as pl
 from torchmetrics import classification
 import wandb
+from matplotlib import pyplot as plt
+import matplotlib.ticker as ticker
+
+import json
 
 from messis.prithvi import TemporalViTEncoder, ConvTransformerTokensToEmbeddingNeck
 
@@ -302,7 +306,7 @@ class Messis(pl.LightningModule):
         return {'loss': loss, 'outputs': outputs}
         
 class LogConfusionMatrix(pl.Callback):
-    def __init__(self, hparams, debug=False):
+    def __init__(self, hparams, feature_names_file, debug=False):
         super().__init__()
 
         assert hparams.get('tiers') is not None, "Tiers must be defined in the hparams"
@@ -311,6 +315,9 @@ class LogConfusionMatrix(pl.Callback):
         self.tiers = list(hparams.get('tiers').keys())
         self.phases = ['train', 'val', 'test']
         self.debug = debug
+        
+        with open(feature_names_file, 'r') as f:
+            self.feature_names_by_tier = json.load(f)
 
         # Initialize confusion matrices
         self.metrics_to_compute = ['confusion_matrix']
@@ -342,7 +349,8 @@ class LogConfusionMatrix(pl.Callback):
         self.__update_confusion_matrices(trainer, pl_module, outputs, batch, batch_idx, 'test')
 
     def __update_confusion_matrices(self, trainer, pl_module, outputs, batch, batch_idx, phase):
-        if trainer.sanity_checking: return
+        if trainer.sanity_checking:
+            return
 
         outputs = outputs['outputs']
         tier1_targets, tier2_targets, tier3_targets = batch[1]
@@ -354,7 +362,8 @@ class LogConfusionMatrix(pl.Callback):
         assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
 
         for pred, target, tier in zip(preds, targets, self.tiers):
-            if self.debug: print(f"Updating confusion matrix for {phase} {tier}")
+            if self.debug:
+                print(f"Updating confusion matrix for {phase} {tier}")
             metrics = self.metrics[phase][tier]
             metrics['confusion_matrix'].update(pred, target)
 
@@ -371,31 +380,36 @@ class LogConfusionMatrix(pl.Callback):
         self.__log_and_reset_confusion_matrices(trainer, pl_module, 'test')
 
     def __log_and_reset_confusion_matrices(self, trainer, pl_module, phase):
-        if trainer.sanity_checking: return
+        if trainer.sanity_checking:
+            return
 
         for tier in self.tiers:
             metrics = self.metrics[phase][tier]
             confusion_matrix = metrics['confusion_matrix']
-            if self.debug: print(f"Logging and resetting confusion matrix for {phase} {tier} Update count: {confusion_matrix._update_count}")
+            if self.debug:
+                print(f"Logging and resetting confusion matrix for {phase} {tier} Update count: {confusion_matrix._update_count}")
             matrix = confusion_matrix.compute()
-            trainer.logger.experiment.log({f"{phase}_{tier}_confusion_matrix": self.create_wandb_confusion_matrix(matrix)})
+
+            fig, ax = plt.subplots(figsize=(matrix.size(0), matrix.size(0)), dpi=100)
+
+            ax.matshow(matrix.cpu().numpy(), cmap='viridis')
+
+            ax.xaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(1)+1)))
+            ax.yaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(0)+1)))
+
+            clean_tier = tier.split('_')[0] if '_refined' in tier else tier
+            ax.set_xticklabels(self.feature_names_by_tier[clean_tier] + [''], rotation=45)
+            ax.set_yticklabels(self.feature_names_by_tier[clean_tier] + [''])
+
+            fig.tight_layout()
+
+            for i in range(matrix.size(0)):
+                for j in range(matrix.size(1)):
+                    ax.text(j, i, f'{matrix[i, j]:.0f}', ha='center', va='center')
+            trainer.logger.experiment.log({f"{phase}_{tier}_confusion_matrix": wandb.Image(fig)})
+            plt.close()
             confusion_matrix.reset()
 
-    @staticmethod
-    def create_wandb_confusion_matrix(matrix):
-        class_names = [f"Class {i}" for i in range(matrix.size(0))]
-        preds, y_true = LogConfusionMatrix.prepare_matrix_data(matrix)
-        return wandb.plot.confusion_matrix(probs=None, preds=preds, y_true=y_true, class_names=class_names)
-
-    @staticmethod
-    def prepare_matrix_data(matrix):
-        preds, y_true = [], []
-        for i in range(len(matrix)):
-            for j in range(len(matrix[i])):
-                count = int(matrix[i][j])
-                preds.extend([j] * count)
-                y_true.extend([i] * count)
-        return preds, y_true
     
 class LogMessisMetrics(pl.Callback):
     def __init__(self, hparams, debug=False):
@@ -408,7 +422,8 @@ class LogMessisMetrics(pl.Callback):
         self.phases = ['train', 'val', 'test']
         self.debug = debug
 
-        if debug: print(f"Phases: {self.phases}, Tiers: {self.tiers}")
+        if debug:
+            print(f"Phases: {self.phases}, Tiers: {self.tiers}")
 
         # Initialize metrics
         self.metrics_to_compute = ['accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
@@ -455,8 +470,10 @@ class LogMessisMetrics(pl.Callback):
         self.__on_batch_end(trainer, pl_module, outputs, batch, batch_idx, 'test')
 
     def __on_batch_end(self, trainer: pl.Trainer, pl_module, outputs, batch, batch_idx, phase):
-        if trainer.sanity_checking: return
-        if self.debug: print(f"{phase} batch ended. Updating metrics...")
+        if trainer.sanity_checking:
+            return
+        if self.debug:
+            print(f"{phase} batch ended. Updating metrics...")
 
         outputs = outputs['outputs']
         tier1_targets, tier2_targets, tier3_targets = batch[1]
@@ -471,7 +488,8 @@ class LogMessisMetrics(pl.Callback):
             metrics = self.metrics[phase][tier]
             for metric in self.metrics_to_compute:
                 metrics[metric].update(pred, target)
-                if self.debug: print(f"{phase} {tier} {metric} updated. Update count: {metrics[metric]._update_count}")
+                if self.debug:
+                    print(f"{phase} {tier} {metric} updated. Update count: {metrics[metric]._update_count}")
             self.__update_per_class_accuracy(pred, target, metrics['per_class_accuracies'])
 
     def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
@@ -479,7 +497,8 @@ class LogMessisMetrics(pl.Callback):
             class_mask = targets == class_index
             if class_mask.any():
                 class_accuracy.update(preds[class_mask], targets[class_mask])
-                if self.debug: print(f"Per-class accuracy for class {class_index} updated. Update count: {class_accuracy._update_count}")
+                if self.debug:
+                    print(f"Per-class accuracy for class {class_index} updated. Update count: {class_accuracy._update_count}")
 
     def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
         self.__on_epoch_end(trainer, pl_module, 'train')
@@ -491,7 +510,8 @@ class LogMessisMetrics(pl.Callback):
         self.__on_epoch_end(trainer, pl_module, 'test')
 
     def __on_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule, phase):
-        if trainer.sanity_checking: return # Skip during sanity check (avoid warning about metric compute being called before update)
+        if trainer.sanity_checking:
+            return # Skip during sanity check (avoid warning about metric compute being called before update)
         accuracies = []
         for tier in self.tiers:
             metrics = self.metrics[phase][tier]
@@ -517,4 +537,5 @@ class LogMessisMetrics(pl.Callback):
         overall_accuracy = sum(accuracies) / len(accuracies)
         pl_module.log(f"{phase}_accuracy_overall", overall_accuracy, on_step=False, on_epoch=True)
 
-        if self.debug: print(f"{phase} epoch ended. Logging & resetting metrics...", trainer.sanity_checking)
+        if self.debug:
+            print(f"{phase} epoch ended. Logging & resetting metrics...", trainer.sanity_checking)

@@ -166,3 +166,4 @@ wandb/
 slurm/
 
 messis-lightning.output.ipynb
+*.ckpt

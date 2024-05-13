@@ -61,8 +61,8 @@ stages:
       nfiles: 194
     - path: rasterize_labels.ipynb
       hash: md5
-      md5: cf7e3c47c430d7b07d9061a5a43c9dfa
-      size: 5191030
+      md5: 370668bbc51a43b49bb4c0412ea9e2e0
+      size: 5192919
     params:
       params.yaml:
         max_cloud_cover: 5
@@ -70,6 +70,7 @@ stages:
         paths.labels: data/labels.tif
         paths.labels_hierarchy: data/labels_hierarchy.tif
         paths.satellite: data/satellite
+        paths.tier_names: data/tier_names.json
         zueri_crop.bbox:
         - 8.364
         - 47.24
@@ -88,6 +89,10 @@ stages:
       hash: md5
       md5: 65ebb2ac0667f3998f1f90e4fdbaddc7
       size: 78674292
+    - path: data/tier_names.json
+      hash: md5
+      md5: e60d5601ff14090f48a53fc71ed36dc7
+      size: 1617
   prepare-dataset:
     cmd: papermill prepare_dataset.ipynb prepare_dataset.output.ipynb && rm prepare_dataset.output.ipynb
     deps:
@@ -102,7 +107,7 @@ stages:
       nfiles: 194
     - path: prepare_dataset.ipynb
       hash: md5
-      md5: ba8908f7365303044a0e4a9bb134f709
+      md5: 0b7d46ef4a0b13ffd3588a4252981660
       size: 6007424
     params:
       params.yaml:
@@ -131,7 +136,7 @@ stages:
     deps:
     - path: calculate_dataset_stats.ipynb
       hash: md5
-      md5: 159538a9f2b5e0f8b06ab59c3d7c4e6f
+      md5: 659c987a4fb3668bc859c12c5676730b
       size: 5076
     - path: data/chips
       hash: md5

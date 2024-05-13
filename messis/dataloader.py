@@ -149,18 +149,24 @@ class GeospatialDataModule(LightningDataModule):
         self.num_workers = num_workers
         self.crop_to = crop_to
         self.debug = debug
-        self.subsets = subsets
+        self.subsets = subsets if subsets is not None else {}
 
         # NOTE: Transforms on this level not used for now
         self.transform_img = get_img_transforms()
         self.transform_mask = get_mask_transforms()
 
     def setup(self, stage=None):
+        common_params = {
+            'data_dir': self.data_dir,
+            'test_fold': self.test_fold,
+            'crop_to': self.crop_to,
+            'debug': self.debug,
+        }
         if stage in ('fit', None):
-            self.train_dataset = GeospatialDataset(self.data_dir, self.test_fold, train=True, crop_to=self.crop_to, debug=self.debug, subset_size=self.subsets.get('train', None))
-            self.val_dataset = GeospatialDataset(self.data_dir, self.test_fold, train=False, crop_to=self.crop_to, debug=self.debug, subset_size=self.subsets.get('val', None))
+            self.train_dataset = GeospatialDataset(train=True,  subset_size=self.subsets.get('train', None), **common_params)
+            self.val_dataset   = GeospatialDataset(train=False, subset_size=self.subsets.get('val',   None), **common_params)
         if stage in ('test', None):
-            self.test_dataset = GeospatialDataset(self.data_dir, self.test_fold, train=False, crop_to=self.crop_to, debug=self.debug, subset_size=self.subsets.get('test', None))
+            self.test_dataset  = GeospatialDataset(train=False, subset_size=self.subsets.get('test',  None), **common_params)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)

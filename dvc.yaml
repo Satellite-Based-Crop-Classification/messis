@@ -29,10 +29,12 @@ stages:
     - paths.labels
     - paths.labels_hierarchy
     - paths.field_ids
+    - paths.tier_names
     outs:
     - data/labels.tif
     - data/labels_hierarchy.tif
     - data/field_ids.tif
+    - data/tier_names.json
 
   prepare-dataset:
     cmd: papermill prepare_dataset.ipynb prepare_dataset.output.ipynb && rm prepare_dataset.output.ipynb
@@ -78,3 +80,4 @@ stages:
 
   # train-model:
     # deps: download-prithvi-base-model
+    #    - data/tier_names.json
