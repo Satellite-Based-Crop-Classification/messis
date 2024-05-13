@@ -412,7 +412,7 @@ class LogConfusionMatrix(pl.Callback):
 
     
 class LogMessisMetrics(pl.Callback):
-    def __init__(self, hparams, debug=False):
+    def __init__(self, hparams, feature_names_file, debug=False):
         super().__init__()
 
         assert hparams.get('tiers') is not None, "Tiers must be defined in the hparams"
@@ -424,6 +424,9 @@ class LogMessisMetrics(pl.Callback):
 
         if debug:
             print(f"Phases: {self.phases}, Tiers: {self.tiers}")
+
+        with open(feature_names_file, 'r') as f:
+            self.feature_names_by_tier = json.load(f)
 
         # Initialize metrics
         self.metrics_to_compute = ['accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
@@ -525,12 +528,28 @@ class LogMessisMetrics(pl.Callback):
             # Collect accuracies for overall accuracy calculation
             accuracies.append(metrics_dict['accuracy'])
 
-            # Per-class accuracy in tier
+            """# Per-class accuracy in tier
             for class_index, class_accuracy in metrics['per_class_accuracies'].items():
                 if class_accuracy._update_count == 0:
                     continue # Skip if no updates have been made (no samples of this class in the processed dataset partition)
                 class_accuracy_value = class_accuracy.compute()
                 pl_module.log(f"{phase}_accuracy_{tier}_class_{class_index}", class_accuracy_value, on_step=False, on_epoch=True)
+                class_accuracy.reset()"""
+
+            class_names_mapping = self.feature_names_by_tier[tier.split('_')[0] if '_refined' in tier else tier] 
+            
+            class_accuracies = []
+            for class_index, class_accuracy in metrics['per_class_accuracies'].items():
+                if class_accuracy._update_count == 0:
+                    continue  # Skip if no updates have been made
+                class_accuracies.append([class_index, class_names_mapping[class_index], class_accuracy.compute()])
+            wandb_table = wandb.Table(data=class_accuracies, columns=["Class Index", "Class Name", "Accuracy"])
+
+            # Log the table
+            trainer.logger.experiment.log({f"{phase}_per_class_accuracy_{tier}": wandb_table})
+
+            # Reset the per-class accuracies
+            for class_accuracy in metrics['per_class_accuracies'].values():
                 class_accuracy.reset()
 
         # Overall accuracy
