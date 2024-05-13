@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
+from torchmetrics import classification
+import wandb
 
 from messis.prithvi import TemporalViTEncoder, ConvTransformerTokensToEmbeddingNeck
 
@@ -258,20 +260,20 @@ class Messis(pl.LightningModule):
         self.save_hyperparameters(hparams)
 
         self.model = HierarchicalClassifier(
-            hparams.get('num_classes_tier1'), 
-            hparams.get('num_classes_tier2'),
-            hparams.get('num_classes_tier3'),
-            hparams.get('img_size'),
-            hparams.get('patch_size'),
-            hparams.get('num_frames'),
-            hparams.get('bands'),
-            hparams.get('weight_tier1'),
-            hparams.get('weight_tier2'),
-            hparams.get('weight_tier3'),
-            hparams.get('weight_tier3_refined'),
-            hparams.get('debug')
+            num_classes_tier1=hparams['tiers']['tier1']['num_classes'],
+            num_classes_tier2=hparams['tiers']['tier2']['num_classes'],
+            num_classes_tier3=hparams['tiers']['tier3']['num_classes'],
+            img_size=hparams.get('img_size'),
+            patch_size=hparams.get('patch_size'),
+            num_frames=hparams.get('num_frames'),
+            bands=hparams.get('bands'),
+            weight_tier1=hparams['tiers']['tier1']['loss_weight'],
+            weight_tier2=hparams['tiers']['tier2']['loss_weight'],
+            weight_tier3=hparams['tiers']['tier3']['loss_weight'],
+            weight_tier3_refined=hparams['tiers']['tier3_refined']['loss_weight'],
+            debug=hparams.get('debug')
         )
-    
+
     def forward(self, x):
         return self.model(x)
     
@@ -280,33 +282,239 @@ class Messis(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         return self.__step(batch, batch_idx, "val")
-    
-    def __step(self, batch, batch_idx, stage):
-        inputs, targets = batch
-    
-        if self.hparams.get('debug'):
-            print(f"Step Inputs shape: {safe_shape(inputs)}")
-            print(f"Step Targets shape: {safe_shape(targets)}")
-
-        outputs = self(inputs)
-
-        if self.hparams.get('debug'):
-            print(f"Step Outputs shape: {safe_shape(outputs)}")
-
-        loss = self.model.calculate_loss(outputs, targets)
-
-        # TODO: Implement metrics
-
-        self.log(
-            f"{stage}_loss",
-            loss,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
-        return loss
-
+        
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.get('lr', 1e-3))
         return optimizer
+
+    def __step(self, batch, batch_idx, stage):
+        inputs, targets = batch
+        outputs = self(inputs)
+        loss = self.model.calculate_loss(outputs, targets)
+
+        if self.hparams.get('debug'):
+            print(f"Step Inputs shape: {safe_shape(inputs)}")
+            print(f"Step Targets shape: {safe_shape(targets)}")
+            print(f"Step Outputs shape: {safe_shape(outputs)}")
+
+        # NOTE: All metrics other than loss are tracked by callbacks (LogMessisMetrics)
+        self.log('loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return {'loss': loss, 'outputs': outputs}
+        
+class LogConfusionMatrix(pl.Callback):
+    def __init__(self, hparams, debug=False):
+        super().__init__()
+
+        assert hparams.get('tiers') is not None, "Tiers must be defined in the hparams"
+
+        self.tiers_dict = hparams.get('tiers')
+        self.tiers = list(hparams.get('tiers').keys())
+        self.phases = ['train', 'val', 'test']
+        self.debug = debug
+
+        # Initialize confusion matrices
+        self.metrics_to_compute = ['confusion_matrix']
+        self.metrics = {phase: {tier: self.__init_metrics(tier, phase) for tier in self.tiers} for phase in self.phases}
+
+    def __init_metrics(self, tier, phase):
+        num_classes = self.tiers_dict[tier]['num_classes']
+        confusion_matrix = classification.MulticlassConfusionMatrix(num_classes=num_classes)
+
+        return {
+            'confusion_matrix': confusion_matrix
+        }
+
+    def setup(self, trainer, pl_module, stage=None):
+        # Move all metrics to the correct device at the start of the training/validation
+        device = pl_module.device
+        for phase_metrics in self.metrics.values():
+            for tier_metrics in phase_metrics.values():
+                for metric in self.metrics_to_compute:
+                    tier_metrics[metric].to(device)
+
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        self.__update_confusion_matrices(trainer, pl_module, outputs, batch, batch_idx, 'train')
+
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        self.__update_confusion_matrices(trainer, pl_module, outputs, batch, batch_idx, 'val')
+
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        self.__update_confusion_matrices(trainer, pl_module, outputs, batch, batch_idx, 'test')
+
+    def __update_confusion_matrices(self, trainer, pl_module, outputs, batch, batch_idx, phase):
+        if trainer.sanity_checking: return
+
+        outputs = outputs['outputs']
+        tier1_targets, tier2_targets, tier3_targets = batch[1]
+        targets = [tier1_targets, tier2_targets, tier3_targets, tier3_targets]
+        preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
+
+        # Update all metrics
+        assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
+        assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
+
+        for pred, target, tier in zip(preds, targets, self.tiers):
+            if self.debug: print(f"Updating confusion matrix for {phase} {tier}")
+            metrics = self.metrics[phase][tier]
+            metrics['confusion_matrix'].update(pred, target)
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        # Log and then reset the confusion matrices after training epoch
+        self.__log_and_reset_confusion_matrices(trainer, pl_module, 'train')
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        # Log and then reset the confusion matrices after validation epoch
+        self.__log_and_reset_confusion_matrices(trainer, pl_module, 'val')
+
+    def on_test_epoch_end(self, trainer, pl_module):
+        # Log and then reset the confusion matrices after test epoch
+        self.__log_and_reset_confusion_matrices(trainer, pl_module, 'test')
+
+    def __log_and_reset_confusion_matrices(self, trainer, pl_module, phase):
+        if trainer.sanity_checking: return
+
+        for tier in self.tiers:
+            metrics = self.metrics[phase][tier]
+            confusion_matrix = metrics['confusion_matrix']
+            if self.debug: print(f"Logging and resetting confusion matrix for {phase} {tier} Update count: {confusion_matrix._update_count}")
+            matrix = confusion_matrix.compute()
+            trainer.logger.experiment.log({f"{phase}_{tier}_confusion_matrix": self.create_wandb_confusion_matrix(matrix)})
+            confusion_matrix.reset()
+
+    @staticmethod
+    def create_wandb_confusion_matrix(matrix):
+        class_names = [f"Class {i}" for i in range(matrix.size(0))]
+        preds, y_true = LogConfusionMatrix.prepare_matrix_data(matrix)
+        return wandb.plot.confusion_matrix(probs=None, preds=preds, y_true=y_true, class_names=class_names)
+
+    @staticmethod
+    def prepare_matrix_data(matrix):
+        preds, y_true = [], []
+        for i in range(len(matrix)):
+            for j in range(len(matrix[i])):
+                count = int(matrix[i][j])
+                preds.extend([j] * count)
+                y_true.extend([i] * count)
+        return preds, y_true
+    
+class LogMessisMetrics(pl.Callback):
+    def __init__(self, hparams, debug=False):
+        super().__init__()
+
+        assert hparams.get('tiers') is not None, "Tiers must be defined in the hparams"
+
+        self.tiers_dict = hparams.get('tiers')
+        self.tiers = list(self.tiers_dict.keys())
+        self.phases = ['train', 'val', 'test']
+        self.debug = debug
+
+        if debug: print(f"Phases: {self.phases}, Tiers: {self.tiers}")
+
+        # Initialize metrics
+        self.metrics_to_compute = ['accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
+        self.metrics = {phase: {tier: self.__init_metrics(tier, phase) for tier in self.tiers} for phase in self.phases}
+
+    def __init_metrics(self, tier, phase):
+        num_classes = self.tiers_dict[tier]['num_classes']
+
+        accuracy = classification.MulticlassAccuracy(num_classes=num_classes, average='macro')
+        per_class_accuracies = {
+            class_index: classification.MulticlassAccuracy(num_classes=num_classes, average='macro') for class_index in range(num_classes)
+        }
+        precision = classification.MulticlassPrecision(num_classes=num_classes, average='macro')
+        recall = classification.MulticlassRecall(num_classes=num_classes, average='macro')
+        f1 = classification.MulticlassF1Score(num_classes=num_classes, average='macro')
+        cohen_kappa = classification.MulticlassCohenKappa(num_classes=num_classes)
+
+        return {
+            'accuracy': accuracy,
+            'per_class_accuracies': per_class_accuracies,
+            'precision': precision,
+            'recall': recall,
+            'f1': f1,
+            'cohen_kappa': cohen_kappa
+        }
+
+    def setup(self, trainer, pl_module, stage=None):
+        # Move all metrics to the correct device at the start of the training/validation
+        device = pl_module.device
+        for phase_metrics in self.metrics.values():
+            for tier_metrics in phase_metrics.values():
+                for metric in self.metrics_to_compute:
+                    tier_metrics[metric].to(device)
+                for class_accuracy in tier_metrics['per_class_accuracies'].values():
+                    class_accuracy.to(device)
+
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        self.__on_batch_end(trainer, pl_module, outputs, batch, batch_idx, 'train')
+
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        self.__on_batch_end(trainer, pl_module, outputs, batch, batch_idx, 'val')
+
+    def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        self.__on_batch_end(trainer, pl_module, outputs, batch, batch_idx, 'test')
+
+    def __on_batch_end(self, trainer: pl.Trainer, pl_module, outputs, batch, batch_idx, phase):
+        if trainer.sanity_checking: return
+        if self.debug: print(f"{phase} batch ended. Updating metrics...")
+
+        outputs = outputs['outputs']
+        tier1_targets, tier2_targets, tier3_targets = batch[1]
+        targets = [tier1_targets, tier2_targets, tier3_targets, tier3_targets]
+        preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
+
+        # Update all metrics
+        assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
+        assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
+        
+        for pred, target, tier in zip(preds, targets, self.tiers):
+            metrics = self.metrics[phase][tier]
+            for metric in self.metrics_to_compute:
+                metrics[metric].update(pred, target)
+                if self.debug: print(f"{phase} {tier} {metric} updated. Update count: {metrics[metric]._update_count}")
+            self.__update_per_class_accuracy(pred, target, metrics['per_class_accuracies'])
+
+    def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
+        for class_index, class_accuracy in per_class_accuracies.items():
+            class_mask = targets == class_index
+            if class_mask.any():
+                class_accuracy.update(preds[class_mask], targets[class_mask])
+                if self.debug: print(f"Per-class accuracy for class {class_index} updated. Update count: {class_accuracy._update_count}")
+
+    def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+        self.__on_epoch_end(trainer, pl_module, 'train')
+
+    def on_validation_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+        self.__on_epoch_end(trainer, pl_module, 'val')
+
+    def on_test_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+        self.__on_epoch_end(trainer, pl_module, 'test')
+
+    def __on_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule, phase):
+        if trainer.sanity_checking: return # Skip during sanity check (avoid warning about metric compute being called before update)
+        accuracies = []
+        for tier in self.tiers:
+            metrics = self.metrics[phase][tier]
+
+            # Calculate and reset in tier: Accuracy, Precision, Recall, F1, Cohen's Kappa
+            metrics_dict = {metric: metrics[metric].compute() for metric in self.metrics_to_compute}
+            pl_module.log_dict({f"{phase}_{metric}_{tier}": v for metric, v in metrics_dict.items()}, on_step=False, on_epoch=True)
+            for metric in self.metrics_to_compute:
+                metrics[metric].reset()
+
+            # Collect accuracies for overall accuracy calculation
+            accuracies.append(metrics_dict['accuracy'])
+
+            # Per-class accuracy in tier
+            for class_index, class_accuracy in metrics['per_class_accuracies'].items():
+                if class_accuracy._update_count == 0:
+                    continue # Skip if no updates have been made (no samples of this class in the processed dataset partition)
+                class_accuracy_value = class_accuracy.compute()
+                pl_module.log(f"{phase}_accuracy_{tier}_class_{class_index}", class_accuracy_value, on_step=False, on_epoch=True)
+                class_accuracy.reset()
+
+        # Overall accuracy
+        overall_accuracy = sum(accuracies) / len(accuracies)
+        pl_module.log(f"{phase}_accuracy_overall", overall_accuracy, on_step=False, on_epoch=True)
+
+        if self.debug: print(f"{phase} epoch ended. Logging & resetting metrics...", trainer.sanity_checking)

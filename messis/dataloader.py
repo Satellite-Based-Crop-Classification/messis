@@ -1,3 +1,4 @@
+import random
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
@@ -45,7 +46,7 @@ def get_mask_transforms():
     return transforms.Compose([])
 
 class GeospatialDataset(Dataset):
-    def __init__(self, data_dir, test_fold, train=True, transform_img=None, transform_mask=None, crop_to=None, debug=False):
+    def __init__(self, data_dir, test_fold, train=True, transform_img=None, transform_mask=None, crop_to=None, debug=False, subset_size=None):
         self.data_dir = data_dir
         self.chips_dir = os.path.join(data_dir, 'chips')
         self.transform_img = transform_img
@@ -66,6 +67,15 @@ class GeospatialDataset(Dataset):
                 self.images.append(file)
                 mask_file = file.replace("_merged.tif", "_mask.tif")
                 self.masks.append(mask_file)
+
+        assert len(self.images) == len(self.masks), "Number of images and masks do not match"
+
+        # If subset_size is specified, randomly select a subset of the data
+        if subset_size is not None and len(self.images) > subset_size:
+            print(f"Randomly selecting {subset_size} samples from {len(self.images)} samples.")
+            selected_indices = random.sample(range(len(self.images)), subset_size)
+            self.images = [self.images[i] for i in selected_indices]
+            self.masks = [self.masks[i] for i in selected_indices]
 
     def load_stats(self, test_fold):
         """Load normalization statistics for dataset from YAML file."""
@@ -131,26 +141,26 @@ class GeospatialDataset(Dataset):
         return img, (targets_tier1, targets_tier2, targets_tier3)
 
 class GeospatialDataModule(LightningDataModule):
-    def __init__(self, data_dir, test_fold, batch_size=8, num_workers=4, crop_to=None, debug=False):
+    def __init__(self, data_dir, test_fold, batch_size=8, num_workers=4, crop_to=None, debug=False, subsets=None):
         super().__init__()
         self.data_dir = data_dir
         self.test_fold = test_fold
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.crop_to = crop_to
+        self.debug = debug
+        self.subsets = subsets
 
         # NOTE: Transforms on this level not used for now
         self.transform_img = get_img_transforms()
         self.transform_mask = get_mask_transforms()
 
-        self.debug = debug
-
     def setup(self, stage=None):
         if stage in ('fit', None):
-            self.train_dataset = GeospatialDataset(self.data_dir, self.test_fold, train=True, crop_to=self.crop_to, debug=self.debug)
-            self.val_dataset = GeospatialDataset(self.data_dir, self.test_fold, train=False, crop_to=self.crop_to, debug=self.debug)
+            self.train_dataset = GeospatialDataset(self.data_dir, self.test_fold, train=True, crop_to=self.crop_to, debug=self.debug, subset_size=self.subsets.get('train', None))
+            self.val_dataset = GeospatialDataset(self.data_dir, self.test_fold, train=False, crop_to=self.crop_to, debug=self.debug, subset_size=self.subsets.get('val', None))
         if stage in ('test', None):
-            self.test_dataset = GeospatialDataset(self.data_dir, self.test_fold, train=False, crop_to=self.crop_to, debug=self.debug)
+            self.test_dataset = GeospatialDataset(self.data_dir, self.test_fold, train=False, crop_to=self.crop_to, debug=self.debug, subset_size=self.subsets.get('test', None))
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
