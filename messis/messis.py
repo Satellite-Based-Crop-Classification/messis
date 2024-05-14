@@ -431,7 +431,7 @@ class LogConfusionMatrix(pl.Callback):
 
                 for i in range(matrix.size(0)):
                     for j in range(matrix.size(1)):
-                        ax.text(j, i, f'{matrix[i, j]:.0f}', ha='center', va='center')
+                        ax.text(j, i, f'{matrix[i, j]:.0f}', ha='center', va='center', color='white')
                 trainer.logger.experiment.log({f"{phase}_{tier}_confusion_matrix_{mode}": wandb.Image(fig)})
                 plt.close()
                 confusion_matrix.reset()
