@@ -582,30 +582,17 @@ class LogMessisMetrics(pl.Callback):
                 # Reset the per-class accuracies
                 for class_accuracy in metrics['per_class_accuracies'].values():
                     class_accuracy.reset()
-        images = []
         for mode in self.modes:
-            imgs = self.images_to_log[phase][mode] # shape: (BATCH, H, W)
-            normalized_img = imgs / torch.max(imgs).item()
-            batch_imgs = []
-            for img in normalized_img.cpu().numpy():
-                colored_img = plt.cm.viridis(img)
-                colored_img_uint8 = (colored_img[:, :, :3] * 255).astype(np.uint8)
-                batch_imgs.append(colored_img_uint8)
-            images.append(batch_imgs)
-
             # Overall accuracy
             overall_accuracy = sum(accuracies) / len(accuracies)
             pl_module.log(f"{phase}_accuracy_overall_{mode}", overall_accuracy, on_step=False, on_epoch=True)
 
-        # log the target image on level3
-        imgs = self.images_to_log_targets[phase]
-        normalized_img = imgs / torch.max(imgs).item()
-        target_imgs = []
-        for img in normalized_img.cpu().numpy():
-            colored_img = plt.cm.viridis(img)
-            colored_img_uint8 = (colored_img[:, :, :3] * 255).astype(np.uint8)
-            target_imgs.append(colored_img_uint8)
-        images.append(target_imgs)
+        # use the same max for all images, such that they are comparable
+        max = torch.max(torch.cat(self.images_to_log_targets[phase].values())).item()
+        images = [LogMessisMetrics.process_images(self.images_to_log[phase][mode], max) for mode in self.modes]
+        images.append(LogMessisMetrics.process_images(self.images_to_log_targets[phase], max))
+        
+        # compute map with
 
         examples = []
         for i in range(len(images[0])):
@@ -616,3 +603,22 @@ class LogMessisMetrics(pl.Callback):
 
         if self.debug:
             print(f"{phase} epoch ended. Logging & resetting metrics...", trainer.sanity_checking)
+
+    @staticmethod
+    def process_images(imgs, max=None):
+        """
+        Process a batch of images to be logged on wandb.
+
+        Args:
+            imgs (torch.Tensor): A batch of images with shape (B, H, W) to be processed.
+            max (float, optional): The maximum value to normalize the images. Defaults to None. If None, the maximum value in the batch is used.
+        """
+        if max is None:
+            max = torch.max(imgs).item()
+        normalized_img = imgs / max
+        processed_imgs = []
+        for img in normalized_img.cpu().numpy():
+            colored_img = plt.cm.viridis(img)
+            colored_img_uint8 = (colored_img[:, :, :3] * 255).astype(np.uint8)
+            processed_imgs.append(colored_img_uint8)
+        return processed_imgs
