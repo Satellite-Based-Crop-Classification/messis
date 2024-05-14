@@ -361,7 +361,6 @@ class LogConfusionMatrix(pl.Callback):
         targets = [tier1_targets, tier2_targets, tier3_targets, tier3_targets]
         original_preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
         
-        # TODO
         field_ids = batch[1][1]
         majority_preds = LogConfusionMatrix.get_field_majority_preds(original_preds, field_ids)
         
@@ -597,7 +596,7 @@ class LogMessisMetrics(pl.Callback):
 
             # Overall accuracy
             overall_accuracy = sum(accuracies) / len(accuracies)
-            pl_module.log(f"{phase}_accuracy_overall{mode}", overall_accuracy, on_step=False, on_epoch=True)
+            pl_module.log(f"{phase}_accuracy_overall_{mode}", overall_accuracy, on_step=False, on_epoch=True)
 
         # log the target image on level3
         imgs = self.images_to_log_targets[phase]
