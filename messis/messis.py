@@ -6,6 +6,7 @@ import wandb
 from matplotlib import pyplot as plt
 import numpy as np
 import matplotlib.ticker as ticker
+from matplotlib.colors import ListedColormap
 
 import json
 
@@ -358,10 +359,9 @@ class LogConfusionMatrix(pl.Callback):
 
         outputs = outputs['outputs']
         tier1_targets, tier2_targets, tier3_targets = batch[1][0]
-        targets = [tier1_targets, tier2_targets, tier3_targets, tier3_targets]
-        original_preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]
-        
-        field_ids = batch[1][1]
+        targets = torch.stack([tier1_targets, tier2_targets, tier3_targets, tier3_targets]) # (tiers, batch, H, W)
+        original_preds = torch.stack([torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]) # (tiers, batch, H, W)
+        field_ids = batch[1][1].permute(1, 0, 2, 3)
         majority_preds = LogConfusionMatrix.get_field_majority_preds(original_preds, field_ids)
         
         for preds, mode in zip([original_preds, majority_preds], self.modes):
@@ -377,17 +377,25 @@ class LogConfusionMatrix(pl.Callback):
 
     @staticmethod
     def get_field_majority_preds(original_preds, field_ids):
-        majority_preds = []
-        for pred_batch, field_ids_batch in zip(original_preds, field_ids):
-            # apply majority voting
-            majority_pred = torch.zeros_like(pred_batch)
-            for i, (pred_chip, field_ids_chip) in enumerate(zip(pred_batch, field_ids_batch)):
-                for field_id in np.unique(field_ids_chip.cpu().numpy()):
-                    field_mask = field_ids_chip == field_id
-                    # get the most common prediction
-                    majority_pred[i][field_mask] = int(torch.mode(torch.flatten(pred_chip[field_mask]))[0])
-                # append to new_preds
-            majority_preds.append(majority_pred)
+        """
+        Get the majority prediction for each field in the batch.
+
+        Args:
+            original_preds (torch.Tensor(tiers, batch, H, W)): The original predictions.
+            field_ids      (torch.Tensor(1,     batch, H, W)): The field IDs for each prediction.
+
+        Returns:
+            torch.Tensor(tiers, batch, H, W): The majority predictions.
+        """
+        majority_preds = torch.zeros_like(original_preds)
+        for i_tier in range(len(original_preds)):
+            for j_batch in range(len(original_preds[i_tier])):
+                field_ids_batch = field_ids[0][j_batch]
+                for field_id in np.unique(field_ids_batch.cpu().numpy()):
+                    field_mask = field_ids_batch == field_id
+                    flattened_pred = original_preds[i_tier, j_batch][field_mask].view(-1)  # Flatten the prediction
+                    mode_pred, _ = torch.mode(flattened_pred)  # Compute mode prediction
+                    majority_preds[i_tier, j_batch][field_mask] = mode_pred.item()
         return majority_preds
 
     def on_train_epoch_end(self, trainer, pl_module):
@@ -460,6 +468,7 @@ class LogMessisMetrics(pl.Callback):
         self.metrics = {phase: {tier: {mode: self.__init_metrics(tier, phase) for mode in self.modes} for tier in self.tiers} for phase in self.phases}
         self.images_to_log = {phase: {mode: None for mode in self.modes} for phase in self.phases}
         self.images_to_log_targets = {phase: None for phase in self.phases}
+        self.field_ids_to_log_targets = {phase: None for phase in self.phases}
 
     def __init_metrics(self, tier, phase):
         num_classes = self.tiers_dict[tier]['num_classes']
@@ -510,18 +519,17 @@ class LogMessisMetrics(pl.Callback):
 
         outputs = outputs['outputs']
         tier1_targets, tier2_targets, tier3_targets = batch[1][0]
-        targets = [tier1_targets, tier2_targets, tier3_targets, tier3_targets]
-        original_preds = [torch.softmax(out, dim=1).argmax(dim=1) for out in outputs] # list of 4 tensors with shape (B, H, W)
-
-        field_ids = batch[1][1]
+        targets = torch.stack([tier1_targets, tier2_targets, tier3_targets, tier3_targets]) # (tiers, batch, H, W)
+        original_preds = torch.stack([torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]) # (tiers, batch, H, W)
+        field_ids = batch[1][1].permute(1, 0, 2, 3)
         majority_preds = LogConfusionMatrix.get_field_majority_preds(original_preds, field_ids)
         
 
         for preds, mode in zip([original_preds, majority_preds], self.modes):
             # Update all metrics
-            assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
-            assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
-            
+            assert preds.shape == targets.shape, f"Shapes of predictions and targets do not match: {preds.shape} vs {targets.shape}"
+            assert preds.shape[0] == len(self.tiers), f"Number of tiers in predictions and tiers do not match: {preds.shape[0]} vs {len(self.tiers)}"
+           
             self.images_to_log[phase][mode] = preds[3]
             
             for pred, target, tier in zip(preds, targets, self.tiers):
@@ -533,6 +541,7 @@ class LogMessisMetrics(pl.Callback):
                 self.__update_per_class_accuracy(pred, target, metrics['per_class_accuracies'])
 
         self.images_to_log_targets[phase] = targets[3]
+        self.field_ids_to_log_targets[phase] = field_ids[0]
 
     def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
         for class_index, class_accuracy in per_class_accuracies.items():
@@ -588,15 +597,20 @@ class LogMessisMetrics(pl.Callback):
             pl_module.log(f"{phase}_accuracy_overall_{mode}", overall_accuracy, on_step=False, on_epoch=True)
 
         # use the same n_classes for all images, such that they are comparable
-        n_classes = max([torch.max(x) for x in self.images_to_log_targets[phase]])
+        n_classes = max([
+            torch.max(self.images_to_log_targets[phase]),
+            torch.max(self.images_to_log[phase]["post_majority"]),
+            torch.max(self.images_to_log[phase]["pre_majority"])
+        ])
         images     = [LogMessisMetrics.process_images(self.images_to_log[phase][mode], n_classes) for mode in self.modes]
         images.append(LogMessisMetrics.create_positive_negative_image(self.images_to_log[phase]["post_majority"], self.images_to_log_targets[phase]))
         images.append(LogMessisMetrics.process_images(self.images_to_log_targets[phase], n_classes))
+        images.append(LogMessisMetrics.process_images(self.field_ids_to_log_targets[phase].cpu()))
 
         examples = []
         for i in range(len(images[0])):
             example = np.concatenate([img[i] for img in images], axis=0)
-            examples.append(wandb.Image(example, caption=f"From Top to Bottom: {self.modes[0]}, {self.modes[1]}, right/wrong classifications, target"))
+            examples.append(wandb.Image(example, caption=f"From Top to Bottom: {self.modes[0]}, {self.modes[1]}, right/wrong classifications, target, fields"))
 
         trainer.logger.experiment.log({f"{phase}_examples": examples})
 
@@ -624,7 +638,7 @@ class LogMessisMetrics(pl.Callback):
             mask = mask.bool()  # Convert to boolean tensor
             colored_img[mask] = torch.tensor([0, 255, 0], dtype=torch.uint8)
             colored_img[~mask] = torch.tensor([255, 0, 0], dtype=torch.uint8)
-            colored_img[target == 0] = torch.tensor([255, 255, 255], dtype=torch.uint8)
+            colored_img[target == 0] = torch.tensor([0, 0, 0], dtype=torch.uint8)
             processed_imgs.append(colored_img.cpu())
         return processed_imgs
 
@@ -639,11 +653,16 @@ class LogMessisMetrics(pl.Callback):
             max (float, optional): The maximum value to normalize the images. Defaults to None. If None, the maximum value in the batch is used.
         """
         if max is None:
-            max = torch.max(imgs).item()
+            max = np.max(imgs.cpu().numpy())
         normalized_img = imgs / max
         processed_imgs = []
         for img in normalized_img.cpu().numpy():
-            colored_img = plt.cm.viridis(img)
+            if max < 60:
+                cmap = ListedColormap(plt.get_cmap('tab20').colors + plt.get_cmap('tab20b').colors + plt.get_cmap('tab20c').colors)
+            else:
+                cmap = plt.get_cmap('viridis')
+            colored_img = cmap(img)
+            colored_img[img == 0] = [0, 0, 0, 1]
             colored_img_uint8 = (colored_img[:, :, :3] * 255).astype(np.uint8)
             processed_imgs.append(colored_img_uint8)
         return processed_imgs
