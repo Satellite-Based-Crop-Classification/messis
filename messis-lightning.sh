@@ -1,7 +1,7 @@
 #!/bin/sh
 #SBATCH --nodes=1             # This needs to match Trainer(num_nodes=...)
-#SBATCH --gres=gpu:2
-#SBATCH --ntasks-per-node=2   # This needs to match Trainer(devices=...)
+#SBATCH --gres=gpu:1
+#SBATCH --ntasks-per-node=1   # This needs to match Trainer(devices=...)
 #SBATCH --partition=performance
 #SBATCH --out=slurm/logs/model_training.ipynb_out.txt
 #SBATCH --err=slurm/logs/model_training.ipynb_out.txt
