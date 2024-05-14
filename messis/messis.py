@@ -316,7 +316,7 @@ class LogConfusionMatrix(pl.Callback):
         self.tiers_dict = hparams.get('tiers')
         self.tiers = list(hparams.get('tiers').keys())
         self.phases = ['train', 'val', 'test']
-        self.modes = ['original', 'majority']
+        self.modes = ['pre_majority', 'post_majority']
         self.debug = debug
         
         with open(feature_names_file, 'r') as f:
@@ -364,7 +364,7 @@ class LogConfusionMatrix(pl.Callback):
         field_ids = batch[1][1]
         majority_preds = LogConfusionMatrix.get_field_majority_preds(original_preds, field_ids)
         
-        for preds, mode in zip([original_preds, majority_preds], ['original', 'majority']):
+        for preds, mode in zip([original_preds, majority_preds], self.modes):
             # Update all metrics
             assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
             assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
@@ -446,7 +446,7 @@ class LogMessisMetrics(pl.Callback):
         self.tiers_dict = hparams.get('tiers')
         self.tiers = list(self.tiers_dict.keys())
         self.phases = ['train', 'val', 'test']
-        self.modes = ['original', 'majority']
+        self.modes = ['pre_majority', 'post_majority']
         self.debug = debug
 
         if debug:
@@ -517,7 +517,7 @@ class LogMessisMetrics(pl.Callback):
         majority_preds = LogConfusionMatrix.get_field_majority_preds(original_preds, field_ids)
         
 
-        for preds, mode in zip([original_preds, majority_preds], ['original', 'majority']):
+        for preds, mode in zip([original_preds, majority_preds], self.modes):
             # Update all metrics
             assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
             assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
