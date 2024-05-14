@@ -582,17 +582,16 @@ class LogMessisMetrics(pl.Callback):
                 # Reset the per-class accuracies
                 for class_accuracy in metrics['per_class_accuracies'].values():
                     class_accuracy.reset()
-
+        images = []
         for mode in self.modes:
             imgs = self.images_to_log[phase][mode] # shape: (BATCH, H, W)
             normalized_img = imgs / torch.max(imgs).item()
-            wandb_imgs = []
+            batch_imgs = []
             for img in normalized_img.cpu().numpy():
                 colored_img = plt.cm.viridis(img)
                 colored_img_uint8 = (colored_img[:, :, :3] * 255).astype(np.uint8)
-                wandb_imgs.append(wandb.Image(colored_img_uint8))
-
-            trainer.logger.experiment.log({f"{phase}_images_{mode}": wandb_imgs})
+                batch_imgs.append(colored_img_uint8)
+            images.append(batch_imgs)
 
             # Overall accuracy
             overall_accuracy = sum(accuracies) / len(accuracies)
@@ -601,13 +600,19 @@ class LogMessisMetrics(pl.Callback):
         # log the target image on level3
         imgs = self.images_to_log_targets[phase]
         normalized_img = imgs / torch.max(imgs).item()
-        wandb_target_imgs = []
+        target_imgs = []
         for img in normalized_img.cpu().numpy():
             colored_img = plt.cm.viridis(img)
             colored_img_uint8 = (colored_img[:, :, :3] * 255).astype(np.uint8)
-            wandb_target_imgs.append(wandb.Image(colored_img_uint8))
+            target_imgs.append(colored_img_uint8)
+        images.append(target_imgs)
 
-        trainer.logger.experiment.log({f"{phase}_targets": wandb_target_imgs})
+        examples = []
+        for i in range(len(images[0])):
+            example = np.concatenate([img[i] for img in images], axis=0)
+            examples.append(wandb.Image(example, caption=f"Example Top: {self.modes[0]}, Middle: {self.modes[1]}, Bottom: target"))
+            
+        trainer.logger.experiment.log({f"{phase}_examples": examples})
 
         if self.debug:
             print(f"{phase} epoch ended. Logging & resetting metrics...", trainer.sanity_checking)
