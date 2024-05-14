@@ -1,4 +1,5 @@
 #!/bin/sh
+#SBATCH --time=23:59:59
 #SBATCH --nodes=1             # This needs to match Trainer(num_nodes=...)
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks-per-node=1   # This needs to match Trainer(devices=...)
