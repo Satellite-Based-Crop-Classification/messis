@@ -127,3 +127,14 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
     git config --global user.name "Yvo Keller"
     git config --global user.email "hi@yvo.ai"
     ```
+
+## Training
+
+Resources for optimizing the training:
+- https://lightning.ai/docs/pytorch/stable/accelerators/gpu_intermediate.html
+- https://archive.is/ELPqJ
+- PyTorch Lightning SLURM: https://lightning.ai/docs/pytorch/stable/clouds/cluster_advanced.html
+
+Slurm Commands:
+- Show SLURM Cluster nodes with GPU Info: `scontrol show nodes`
+- Cancel SLURM Job: `scancel job_id`
