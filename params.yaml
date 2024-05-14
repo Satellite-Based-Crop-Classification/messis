@@ -13,6 +13,7 @@ paths:
   labels_hierarchy: data/labels_hierarchy.tif
   field_ids: data/field_ids.tif
   stacked_features: data/stacked_features.tif
+  tier_names: data/tier_names.json
 timespans:
   number_of_timespans: 3
   start: '2019-03-01'

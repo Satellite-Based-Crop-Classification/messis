@@ -61,8 +61,8 @@ stages:
       nfiles: 194
     - path: rasterize_labels.ipynb
       hash: md5
-      md5: cf7e3c47c430d7b07d9061a5a43c9dfa
-      size: 5191030
+      md5: 370668bbc51a43b49bb4c0412ea9e2e0
+      size: 5192919
     params:
       params.yaml:
         max_cloud_cover: 5
@@ -70,6 +70,7 @@ stages:
         paths.labels: data/labels.tif
         paths.labels_hierarchy: data/labels_hierarchy.tif
         paths.satellite: data/satellite
+        paths.tier_names: data/tier_names.json
         zueri_crop.bbox:
         - 8.364
         - 47.24
@@ -88,6 +89,10 @@ stages:
       hash: md5
       md5: 65ebb2ac0667f3998f1f90e4fdbaddc7
       size: 78674292
+    - path: data/tier_names.json
+      hash: md5
+      md5: e60d5601ff14090f48a53fc71ed36dc7
+      size: 1617
   prepare-dataset:
     cmd: papermill prepare_dataset.ipynb prepare_dataset.output.ipynb && rm prepare_dataset.output.ipynb
     deps:
@@ -102,8 +107,8 @@ stages:
       nfiles: 194
     - path: prepare_dataset.ipynb
       hash: md5
-      md5: aeffbdf6ce1cca270c2a57437b3c76ad
-      size: 5475153
+      md5: 958e861593eceab398c0e31164360b1b
+      size: 5504282
     params:
       params.yaml:
         chip_size: 224
@@ -118,9 +123,9 @@ stages:
     outs:
     - path: data/chips
       hash: md5
-      md5: fdd04fd1fba92e00918ffd2f774e6c85.dir
-      size: 790042006
-      nfiles: 806
+      md5: aa4d5bc612e588ac3e6e9ff75c52fe3c.dir
+      size: 871612430
+      nfiles: 1209
     - path: data/stacked_features.tif
       hash: md5
       md5: afa429abbea631e0421db110b432776c
@@ -131,13 +136,13 @@ stages:
     deps:
     - path: calculate_dataset_stats.ipynb
       hash: md5
-      md5: 7f16a72b9b4c6e2bea6b55e06c761dc8
-      size: 5142
+      md5: 526e36bb4dd22c58fcd7932eee8475ce
+      size: 5075
     - path: data/chips
       hash: md5
-      md5: fdd04fd1fba92e00918ffd2f774e6c85.dir
-      size: 790042006
-      nfiles: 806
+      md5: aa4d5bc612e588ac3e6e9ff75c52fe3c.dir
+      size: 871612430
+      nfiles: 1209
     - path: data/labels_hierarchy.tif
       hash: md5
       md5: 65ebb2ac0667f3998f1f90e4fdbaddc7
@@ -152,16 +157,16 @@ stages:
     outs:
     - path: data/chips_fold_stats.yaml
       hash: md5
-      md5: 3627acd4f96cec496e4c1243fa41526b
-      size: 1789
+      md5: 9d59cbd8e22ad41048d5de8de644e270
+      size: 1786
   download-prithvi-base-model:
     cmd: papermill download_prithvi_100M.ipynb download_prithvi_100M.output.ipynb
       && rm download_prithvi_100M.output.ipynb
     deps:
     - path: download_prithvi_100M.ipynb
       hash: md5
-      md5: 2448243159ec94c6d413447c59b1e9d8
-      size: 1066
+      md5: 40b7a4b862a6257861f0fe8d67541e61
+      size: 1016
     outs:
     - path: prithvi/models/Prithvi_100M.pt
       hash: md5

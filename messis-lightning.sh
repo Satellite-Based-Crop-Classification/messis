@@ -5,8 +5,8 @@
 #SBATCH --gres=gpu:2
 #SBATCH --partition=performance
 #SBATCH --ntasks-per-node=1
-#SBATCH --out=slurm/logs/messis-lightning.ipynb_out.txt
-#SBATCH --err=slurm/logs/messis-lightning.ipynb_err.txt
+#SBATCH --out=slurm/logs/model_training.ipynb_out.txt
+#SBATCH --err=slurm/logs/model_training.ipynb_err.txt
 #SBATCH --job-name="messis.train"
 
 
@@ -19,4 +19,4 @@ mkdir -p slurm/logs
 poetry run dvc pull
 poetry run dvc repro
 
-poetry run papermill messis-lightning.ipynb messis-lightning.output.ipynb
+poetry run papermill model_training.ipynb model_training.output.ipynb
