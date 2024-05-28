@@ -312,7 +312,7 @@ class Messis(pl.LightningModule):
         return {'loss': loss, 'outputs': outputs}
         
 class LogConfusionMatrix(pl.Callback):
-    def __init__(self, hparams, feature_names_file, debug=False):
+    def __init__(self, hparams, dataset_info_file, debug=False):
         super().__init__()
 
         assert hparams.get('tiers') is not None, "Tiers must be defined in the hparams"
@@ -323,8 +323,8 @@ class LogConfusionMatrix(pl.Callback):
         self.modes = ['pixelwise', 'majority']
         self.debug = debug
         
-        with open(feature_names_file, 'r') as f:
-            self.feature_names_by_tier = json.load(f)
+        with open(dataset_info_file, 'r') as f:
+            self.dataset_info = json.load(f)
 
         # Initialize confusion matrices
         self.metrics_to_compute = ['confusion_matrix']
@@ -364,6 +364,7 @@ class LogConfusionMatrix(pl.Callback):
         tier1_targets, tier2_targets, tier3_targets = batch[1][0]
         targets = torch.stack([tier1_targets, tier2_targets, tier3_targets, tier3_targets]) # (tiers, batch, H, W)
         original_preds = torch.stack([torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]) # (tiers, batch, H, W)
+        # take the tier3_refined prediction and 
         field_ids = batch[1][1].permute(1, 0, 2, 3)
         majority_preds = LogConfusionMatrix.get_field_majority_preds(original_preds, field_ids)
         
@@ -435,8 +436,8 @@ class LogConfusionMatrix(pl.Callback):
                 ax.yaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(0)+1)))
 
                 clean_tier = tier.split('_')[0] if '_refined' in tier else tier
-                ax.set_xticklabels(self.feature_names_by_tier[clean_tier] + [''], rotation=45)
-                ax.set_yticklabels(self.feature_names_by_tier[clean_tier] + [''])
+                ax.set_xticklabels(self.dataset_info[clean_tier] + [''], rotation=45)
+                ax.set_yticklabels(self.dataset_info[clean_tier] + [''])
 
                 fig.tight_layout()
 
@@ -449,7 +450,7 @@ class LogConfusionMatrix(pl.Callback):
 
     
 class LogMessisMetrics(pl.Callback):
-    def __init__(self, hparams, feature_names_file, debug=False):
+    def __init__(self, hparams, dataset_info_file, debug=False):
         super().__init__()
 
         assert hparams.get('tiers') is not None, "Tiers must be defined in the hparams"
@@ -463,8 +464,8 @@ class LogMessisMetrics(pl.Callback):
         if debug:
             print(f"Phases: {self.phases}, Tiers: {self.tiers}, Modes: {self.modes}")
 
-        with open(feature_names_file, 'r') as f:
-            self.feature_names_by_tier = json.load(f)
+        with open(dataset_info_file, 'r') as f:
+            self.dataset_info = json.load(f)
 
         # Initialize metrics
         self.metrics_to_compute = ['accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
@@ -579,7 +580,7 @@ class LogMessisMetrics(pl.Callback):
 
                 # Collect accuracies for overall accuracy calculation
                 accuracies.append(metrics_dict['accuracy'])
-                class_names_mapping = self.feature_names_by_tier[tier.split('_')[0] if '_refined' in tier else tier] 
+                class_names_mapping = self.dataset_info[tier.split('_')[0] if '_refined' in tier else tier] 
 
                 class_accuracies = []
                 for class_index, class_accuracy in metrics['per_class_accuracies'].items():
