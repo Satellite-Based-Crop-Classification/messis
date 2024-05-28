@@ -288,6 +288,9 @@ class Messis(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         return self.__step(batch, batch_idx, "val")
+    
+    def test_step(self, batch, batch_idx):
+        return self.__step(batch, batch_idx, "test")
         
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.get('lr', 1e-3))
