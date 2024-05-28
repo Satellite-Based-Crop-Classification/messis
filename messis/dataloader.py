@@ -85,7 +85,7 @@ class GeospatialDataset(Dataset):
 
     def load_stats(self, test_fold):
         """Load normalization statistics for dataset from YAML file."""
-        stats_path = os.path.join(self.data_dir, 'chips_fold_stats.yaml')
+        stats_path = os.path.join(self.data_dir, 'chips_stats.yaml')
         if self.debug:
             print(f"Loading mean/std stats from {stats_path}")
         assert os.path.exists(stats_path), f"mean/std stats file for dataset not found at {stats_path}"

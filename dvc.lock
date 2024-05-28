@@ -140,8 +140,8 @@ stages:
     deps:
     - path: calculate_dataset_stats.ipynb
       hash: md5
-      md5: 526e36bb4dd22c58fcd7932eee8475ce
-      size: 5075
+      md5: cb93d5cd75321c91d53ff8653464e657
+      size: 5050
     - path: data/chips
       hash: md5
       md5: 4e2f6f3de2b6d63b75fa37cfebbafe04.dir
@@ -159,7 +159,7 @@ stages:
         paths.labels_hierarchy: data/labels_hierarchy.tif
         timespans.number_of_timespans: 3
     outs:
-    - path: data/chips_fold_stats.yaml
+    - path: data/chips_stats.yaml
       hash: md5
       md5: 9d59cbd8e22ad41048d5de8de644e270
       size: 1786

@@ -6,7 +6,7 @@ zueri_crop:
   bbox: [8.364, 47.240, 9.0405, 47.69894] # new bbox is 5120x5120 pixels to accomodate for a nicer chip size of 20x20 256x256-chips; Old Bounding Box was [8.364, 47.240, 9.000, 47.697]
 paths:
   chips: data/chips
-  chips_fold_stats: data/chips_fold_stats.yaml
+  chips_stats: data/chips_stats.yaml
   satellite: data/satellite
   models: prithvi/models
   labels: data/labels.tif

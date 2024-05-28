@@ -70,7 +70,7 @@ stages:
     - number_of_bands
     - number_of_folds
     outs:
-    - data/chips_fold_stats.yaml
+    - data/chips_stats.yaml
   
   download-prithvi-base-model:
     cmd: papermill download_prithvi_100M.ipynb download_prithvi_100M.output.ipynb && rm download_prithvi_100M.output.ipynb
