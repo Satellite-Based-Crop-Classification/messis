@@ -619,26 +619,62 @@ class LogMessisMetrics(pl.Callback):
         trainer.logger.experiment.log({f"{phase}_examples": examples})
 
         # Log segmentation masks
-        input_data = self.inputs_to_log[phase].cpu().numpy()
-        middle_index = input_data.shape[1] // 2  # Get the middle image index
-        rgb_image = input_data[:3, middle_index, :, :].permute(1, 2, 0).numpy()  # Shape [224, 224, 3]
-        rgb_image = (rgb_image - rgb_image.min()) / (rgb_image.max() - rgb_image.min())
-        rgb_image = (rgb_image * 255).astype(np.uint8)
-
-        ground_truth_mask = self.images_to_log_targets[phase].cpu().numpy()
-        pre_majority_mask = self.images_to_log[phase]["pre_majority"].cpu().numpy()
-        post_majority_mask = self.images_to_log[phase]["post_majority"].cpu().numpy()
+        batch_input_data = self.inputs_to_log[phase].cpu() # shape [BS, 6, 3, 224, 224]
+        ground_truth_masks = self.images_to_log_targets[phase].cpu().numpy()
+        pre_majority_masks = self.images_to_log[phase]["pre_majority"].cpu().numpy()
+        post_majority_masks = self.images_to_log[phase]["post_majority"].cpu().numpy()
         class_labels = {idx: name for idx, name in enumerate(self.feature_names_by_tier["tier3"])}
 
-        mask_img = wandb.Image(
-            rgb_image,
-            masks={
-                "pre_majority_predictions": {"mask_data": pre_majority_mask, "class_labels": class_labels},
-                "post_majority_predictions": {"mask_data": post_majority_mask, "class_labels": class_labels},
-                "ground_truth": {"mask_data": ground_truth_mask, "class_labels": class_labels}
-            },
-        )
-        trainer.logger.experiment.log({f"{phase}_segmentation_map": mask_img})
+        segmentation_masks = []
+        for input_data, ground_truth_mask, pre_majority_mask, post_majority_mask in zip(batch_input_data, ground_truth_masks, pre_majority_masks, post_majority_masks):
+            middle_timestep_index = input_data.shape[1] // 2  # Get the middle timestamp index
+            gamma = 2.5 # Gamma for brightness adjustment
+            rgb_image = input_data[:3, middle_timestep_index, :, :].permute(1, 2, 0).numpy()  # Shape [224, 224, 3]
+            rgb_image = (rgb_image - rgb_image.min()) / (rgb_image.max() - rgb_image.min())
+            rgb_image = np.power(rgb_image, 1.0 / gamma)
+            rgb_image = (rgb_image * 255).astype(np.uint8)
+
+            # Print shapes
+            print(f"RGB Image shape: {rgb_image.shape}")
+            print(f"Ground Truth Mask shape: {ground_truth_mask.shape}")
+            print(f"Pre Majority Mask shape: {pre_majority_mask.shape}")
+            print(f"Post Majority Mask shape: {post_majority_mask.shape}")
+
+            # Debug: Check unique values in the masks
+            print(f"Unique values in ground_truth_mask: {np.unique(ground_truth_mask)}")
+            print(f"Unique values in pre_majority_mask: {np.unique(pre_majority_mask)}")
+            print(f"Unique values in post_majority_mask: {np.unique(post_majority_mask)}")
+
+            # Visualize the target mask separately to check for noise
+            plt.figure(figsize=(20, 5))
+            plt.subplot(1, 4, 1)
+            plt.imshow(rgb_image)
+            plt.title("RGB Image")
+            plt.subplot(1, 4, 2)
+            plt.imshow(ground_truth_mask, cmap='tab20')
+            plt.title("Ground Truth Mask")
+            plt.colorbar()
+            plt.subplot(1, 4, 3)
+            plt.imshow(pre_majority_mask, cmap='tab20')
+            plt.title("Pre Majority Mask")
+            plt.colorbar()
+            plt.subplot(1, 4, 4)
+            plt.imshow(post_majority_mask, cmap='tab20')
+            plt.title("Post Majority Mask")
+            plt.colorbar()
+            plt.show()
+
+            mask_img = wandb.Image(
+                rgb_image,
+                masks={
+                    "pre_majority_predictions": {"mask_data": pre_majority_mask, "class_labels": class_labels},
+                    "post_majority_predictions": {"mask_data": post_majority_mask, "class_labels": class_labels},
+                    "ground_truth": {"mask_data": ground_truth_mask, "class_labels": class_labels}
+                },
+            )
+            segmentation_masks.append(mask_img)
+
+        trainer.logger.experiment.log({f"{phase}_segmentation_mask": segmentation_masks})
 
         if self.debug:
             print(f"{phase} epoch ended. Logging & resetting metrics...", trainer.sanity_checking)
