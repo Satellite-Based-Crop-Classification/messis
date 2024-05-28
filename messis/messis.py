@@ -320,7 +320,7 @@ class LogConfusionMatrix(pl.Callback):
         self.tiers_dict = hparams.get('tiers')
         self.tiers = list(hparams.get('tiers').keys())
         self.phases = ['train', 'val', 'test']
-        self.modes = ['pre_majority', 'post_majority']
+        self.modes = ['pixelwise', 'majority']
         self.debug = debug
         
         with open(feature_names_file, 'r') as f:
@@ -457,7 +457,7 @@ class LogMessisMetrics(pl.Callback):
         self.tiers_dict = hparams.get('tiers')
         self.tiers = list(self.tiers_dict.keys())
         self.phases = ['train', 'val', 'test']
-        self.modes = ['pre_majority', 'post_majority']
+        self.modes = ['pixelwise', 'majority']
         self.debug = debug
 
         if debug:
@@ -602,11 +602,11 @@ class LogMessisMetrics(pl.Callback):
         # use the same n_classes for all images, such that they are comparable
         n_classes = max([
             torch.max(self.images_to_log_targets[phase]),
-            torch.max(self.images_to_log[phase]["post_majority"]),
-            torch.max(self.images_to_log[phase]["pre_majority"])
+            torch.max(self.images_to_log[phase]["majority"]),
+            torch.max(self.images_to_log[phase]["pixelwise"])
         ])
         images     = [LogMessisMetrics.process_images(self.images_to_log[phase][mode], n_classes) for mode in self.modes]
-        images.append(LogMessisMetrics.create_positive_negative_image(self.images_to_log[phase]["post_majority"], self.images_to_log_targets[phase]))
+        images.append(LogMessisMetrics.create_positive_negative_image(self.images_to_log[phase]["majority"], self.images_to_log_targets[phase]))
         images.append(LogMessisMetrics.process_images(self.images_to_log_targets[phase], n_classes))
         images.append(LogMessisMetrics.process_images(self.field_ids_to_log_targets[phase].cpu()))
 
