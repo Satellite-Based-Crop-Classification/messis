@@ -360,15 +360,28 @@ class LogConfusionMatrix(pl.Callback):
         if trainer.sanity_checking:
             return
 
-        outputs = outputs['outputs']
-        tier1_targets, tier2_targets, tier3_targets = batch[1][0]
-        targets = torch.stack([tier1_targets, tier2_targets, tier3_targets, tier3_targets]) # (tiers, batch, H, W)
-        original_preds = torch.stack([torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]) # (tiers, batch, H, W)
-        # take the tier3_refined prediction and 
-        field_ids = batch[1][1].permute(1, 0, 2, 3)
-        majority_preds = LogConfusionMatrix.get_field_majority_preds(original_preds, field_ids)
+        targets = batch[1][0] # (tiers, batch, H, W)
+        pixelwise_tier3_refined = torch.softmax(outputs['outputs'][3], dim=1).argmax(dim=1) # (batch, H, W)
         
-        for preds, mode in zip([original_preds, majority_preds], self.modes):
+        field_ids = batch[1][1].permute(1, 0, 2, 3)[0]
+        majority_tier3 = LogConfusionMatrix.get_field_majority_preds(pixelwise_tier3_refined, field_ids)
+
+        tier3_to_tier1, tier3_to_tier2 = self.dataset_info['tier3_to_tier1'], self.dataset_info['tier3_to_tier2']
+
+        pixelwise_tier1, pixelwise_tier2 = torch.zeros_like(pixelwise_tier3_refined), torch.zeros_like(pixelwise_tier3_refined)
+        majority_tier1, majority_tier2 = torch.zeros_like(majority_tier3), torch.zeros_like(majority_tier3)
+
+        # map tier 3 to tier 2 and tier 1
+        for i, (class_index_tier1, class_index_tier2) in enumerate(zip(tier3_to_tier1, tier3_to_tier2)):
+            pixelwise_tier1[pixelwise_tier3_refined == i] = class_index_tier1
+            pixelwise_tier2[pixelwise_tier3_refined == i] = class_index_tier2
+            majority_tier1[majority_tier3 == i] = class_index_tier1
+            majority_tier2[majority_tier3 == i] = class_index_tier2
+        
+        pixelwise_outputs = torch.stack([pixelwise_tier1, pixelwise_tier2, pixelwise_tier3_refined])
+        majority_outputs = torch.stack([majority_tier1, majority_tier2, majority_tier3])
+        
+        for preds, mode in zip([pixelwise_outputs, majority_outputs], self.modes):
             # Update all metrics
             assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
             assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
@@ -380,26 +393,25 @@ class LogConfusionMatrix(pl.Callback):
                 metrics['confusion_matrix'].update(pred, target)
 
     @staticmethod
-    def get_field_majority_preds(original_preds, field_ids):
+    def get_field_majority_preds(pixelwise, field_ids):
         """
         Get the majority prediction for each field in the batch.
 
         Args:
-            original_preds (torch.Tensor(tiers, batch, H, W)): The original predictions.
-            field_ids      (torch.Tensor(1,     batch, H, W)): The field IDs for each prediction.
+            pixelwise (torch.Tensor(batch, H, W)): The pixelwise predictions.
+            field_ids (torch.Tensor(batch, H, W)): The field IDs for each prediction.
 
         Returns:
-            torch.Tensor(tiers, batch, H, W): The majority predictions.
+            torch.Tensor(batch, H, W): The majority predictions.
         """
-        majority_preds = torch.zeros_like(original_preds)
-        for i_tier in range(len(original_preds)):
-            for j_batch in range(len(original_preds[i_tier])):
-                field_ids_batch = field_ids[0][j_batch]
-                for field_id in np.unique(field_ids_batch.cpu().numpy()):
-                    field_mask = field_ids_batch == field_id
-                    flattened_pred = original_preds[i_tier, j_batch][field_mask].view(-1)  # Flatten the prediction
-                    mode_pred, _ = torch.mode(flattened_pred)  # Compute mode prediction
-                    majority_preds[i_tier, j_batch][field_mask] = mode_pred.item()
+        majority_preds = torch.zeros_like(pixelwise)
+        for batch in range(len(pixelwise)):
+            field_ids_batch = field_ids[batch]
+            for field_id in np.unique(field_ids_batch.cpu().numpy()):
+                field_mask = field_ids_batch == field_id
+                flattened_pred = pixelwise[batch][field_mask].view(-1)  # Flatten the prediction
+                mode_pred, _ = torch.mode(flattened_pred)  # Compute mode prediction
+                majority_preds[batch][field_mask] = mode_pred.item()
         return majority_preds
 
     def on_train_epoch_end(self, trainer, pl_module):
@@ -417,8 +429,6 @@ class LogConfusionMatrix(pl.Callback):
     def __log_and_reset_confusion_matrices(self, trainer, pl_module, phase):
         if trainer.sanity_checking:
             return
-        
-
 
         for tier in self.tiers:
             for mode in self.modes:
@@ -520,16 +530,29 @@ class LogMessisMetrics(pl.Callback):
             return
         if self.debug:
             print(f"{phase} batch ended. Updating metrics...")
-
-        outputs = outputs['outputs']
-        tier1_targets, tier2_targets, tier3_targets = batch[1][0]
-        targets = torch.stack([tier1_targets, tier2_targets, tier3_targets, tier3_targets]) # (tiers, batch, H, W)
-        original_preds = torch.stack([torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]) # (tiers, batch, H, W)
-        field_ids = batch[1][1].permute(1, 0, 2, 3)
-        majority_preds = LogConfusionMatrix.get_field_majority_preds(original_preds, field_ids)
+            
+        targets = batch[1][0] # (tiers, batch, H, W)
+        pixelwise_tier3_refined = torch.softmax(outputs['outputs'][3], dim=1).argmax(dim=1) # (batch, H, W)
         
+        field_ids = batch[1][1].permute(1, 0, 2, 3)[0]
+        majority_tier3 = LogConfusionMatrix.get_field_majority_preds(pixelwise_tier3_refined, field_ids)
 
-        for preds, mode in zip([original_preds, majority_preds], self.modes):
+        tier3_to_tier1, tier3_to_tier2 = self.dataset_info['tier3_to_tier1'], self.dataset_info['tier3_to_tier2']
+
+        pixelwise_tier1, pixelwise_tier2 = torch.zeros_like(pixelwise_tier3_refined), torch.zeros_like(pixelwise_tier3_refined)
+        majority_tier1, majority_tier2 = torch.zeros_like(majority_tier3), torch.zeros_like(majority_tier3)
+
+        # map tier 3 to tier 2 and tier 1
+        for i, (class_index_tier1, class_index_tier2) in enumerate(zip(tier3_to_tier1, tier3_to_tier2)):
+            pixelwise_tier1[pixelwise_tier3_refined == i] = class_index_tier1
+            pixelwise_tier2[pixelwise_tier3_refined == i] = class_index_tier2
+            majority_tier1[majority_tier3 == i] = class_index_tier1
+            majority_tier2[majority_tier3 == i] = class_index_tier2
+        
+        pixelwise_outputs = torch.stack([pixelwise_tier1, pixelwise_tier2, pixelwise_tier3_refined])
+        majority_outputs = torch.stack([majority_tier1, majority_tier2, majority_tier3])
+        
+        for preds, mode in zip([pixelwise_outputs, majority_outputs], self.modes):
             # Update all metrics
             assert preds.shape == targets.shape, f"Shapes of predictions and targets do not match: {preds.shape} vs {targets.shape}"
             assert preds.shape[0] == len(self.tiers), f"Number of tiers in predictions and tiers do not match: {preds.shape[0]} vs {len(self.tiers)}"
