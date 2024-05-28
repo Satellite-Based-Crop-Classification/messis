@@ -61,22 +61,26 @@ stages:
       nfiles: 194
     - path: rasterize_labels.ipynb
       hash: md5
-      md5: d1f6d35aa1ef9e23c1c52c4a5d54f9d8
-      size: 5192921
+      md5: b543010821a9eecd9d654a3815b738eb
+      size: 5193651
     params:
       params.yaml:
         max_cloud_cover: 5
+        paths.dataset_info: data/dataset_info.json
         paths.field_ids: data/field_ids.tif
         paths.labels: data/labels.tif
         paths.labels_hierarchy: data/labels_hierarchy.tif
         paths.satellite: data/satellite
-        paths.tier_names: data/tier_names.json
         zueri_crop.bbox:
         - 8.364
         - 47.24
         - 9.0405
         - 47.69894
     outs:
+    - path: data/dataset_info.json
+      hash: md5
+      md5: 7ec321d915102ae2ded11379d09b4413
+      size: 2864
     - path: data/field_ids.tif
       hash: md5
       md5: a5b8ecd1cc3e9fa7b5cf885216f0ce73
@@ -89,10 +93,6 @@ stages:
       hash: md5
       md5: 65ebb2ac0667f3998f1f90e4fdbaddc7
       size: 78674292
-    - path: data/tier_names.json
-      hash: md5
-      md5: e60d5601ff14090f48a53fc71ed36dc7
-      size: 1617
   prepare-dataset:
     cmd: papermill prepare_dataset.ipynb prepare_dataset.output.ipynb && rm prepare_dataset.output.ipynb
     deps:
