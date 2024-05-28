@@ -397,6 +397,9 @@ class LogConfusionMatrix(pl.Callback):
                 for field_id in np.unique(field_ids_batch.cpu().numpy()):
                     field_mask = field_ids_batch == field_id
                     flattened_pred = original_preds[i_tier, j_batch][field_mask].view(-1)  # Flatten the prediction
+                    # if flattened_pred.numel() == 0:
+                    # print(f"Skipping empty flattened_pred for field ID {field_id}")
+                    #   continue  # Skip if there are no elements
                     mode_pred, _ = torch.mode(flattened_pred)  # Compute mode prediction
                     majority_preds[i_tier, j_batch][field_mask] = mode_pred.item()
         return majority_preds
@@ -416,8 +419,6 @@ class LogConfusionMatrix(pl.Callback):
     def __log_and_reset_confusion_matrices(self, trainer, pl_module, phase):
         if trainer.sanity_checking:
             return
-        
-
 
         for tier in self.tiers:
             for mode in self.modes:
@@ -447,7 +448,6 @@ class LogConfusionMatrix(pl.Callback):
                 plt.close()
                 confusion_matrix.reset()
 
-    
 class LogMessisMetrics(pl.Callback):
     def __init__(self, hparams, feature_names_file, debug=False):
         super().__init__()
@@ -466,12 +466,13 @@ class LogMessisMetrics(pl.Callback):
         with open(feature_names_file, 'r') as f:
             self.feature_names_by_tier = json.load(f)
 
-        # Initialize metrics
+        # Initialize metrics
         self.metrics_to_compute = ['accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
         self.metrics = {phase: {tier: {mode: self.__init_metrics(tier, phase) for mode in self.modes} for tier in self.tiers} for phase in self.phases}
         self.images_to_log = {phase: {mode: None for mode in self.modes} for phase in self.phases}
         self.images_to_log_targets = {phase: None for phase in self.phases}
         self.field_ids_to_log_targets = {phase: None for phase in self.phases}
+        self.inputs_to_log = {phase: None for phase in self.phases}
 
     def __init_metrics(self, tier, phase):
         num_classes = self.tiers_dict[tier]['num_classes']
@@ -526,15 +527,14 @@ class LogMessisMetrics(pl.Callback):
         original_preds = torch.stack([torch.softmax(out, dim=1).argmax(dim=1) for out in outputs]) # (tiers, batch, H, W)
         field_ids = batch[1][1].permute(1, 0, 2, 3)
         majority_preds = LogConfusionMatrix.get_field_majority_preds(original_preds, field_ids)
-        
 
         for preds, mode in zip([original_preds, majority_preds], self.modes):
             # Update all metrics
             assert preds.shape == targets.shape, f"Shapes of predictions and targets do not match: {preds.shape} vs {targets.shape}"
             assert preds.shape[0] == len(self.tiers), f"Number of tiers in predictions and tiers do not match: {preds.shape[0]} vs {len(self.tiers)}"
-           
+
             self.images_to_log[phase][mode] = preds[3]
-            
+
             for pred, target, tier in zip(preds, targets, self.tiers):
                 metrics = self.metrics[phase][tier][mode]
                 for metric in self.metrics_to_compute:
@@ -545,6 +545,7 @@ class LogMessisMetrics(pl.Callback):
 
         self.images_to_log_targets[phase] = targets[3]
         self.field_ids_to_log_targets[phase] = field_ids[0]
+        self.inputs_to_log[phase] = batch[0]
 
     def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
         for class_index, class_accuracy in per_class_accuracies.items():
@@ -577,9 +578,9 @@ class LogMessisMetrics(pl.Callback):
                 for metric in self.metrics_to_compute:
                     metrics[metric].reset()
 
-                # Collect accuracies for overall accuracy calculation
+                # Collect accuracies for overall accuracy calculation
                 accuracies.append(metrics_dict['accuracy'])
-                class_names_mapping = self.feature_names_by_tier[tier.split('_')[0] if '_refined' in tier else tier] 
+                class_names_mapping = self.feature_names_by_tier[tier.split('_')[0] if '_refined' in tier else tier]
 
                 class_accuracies = []
                 for class_index, class_accuracy in metrics['per_class_accuracies'].items():
@@ -595,7 +596,7 @@ class LogMessisMetrics(pl.Callback):
                 for class_accuracy in metrics['per_class_accuracies'].values():
                     class_accuracy.reset()
         for mode in self.modes:
-            # Overall accuracy
+            # Overall accuracy
             overall_accuracy = sum(accuracies) / len(accuracies)
             pl_module.log(f"{phase}_accuracy_overall_{mode}", overall_accuracy, on_step=False, on_epoch=True)
 
@@ -605,7 +606,7 @@ class LogMessisMetrics(pl.Callback):
             torch.max(self.images_to_log[phase]["post_majority"]),
             torch.max(self.images_to_log[phase]["pre_majority"])
         ])
-        images     = [LogMessisMetrics.process_images(self.images_to_log[phase][mode], n_classes) for mode in self.modes]
+        images = [LogMessisMetrics.process_images(self.images_to_log[phase][mode], n_classes) for mode in self.modes]
         images.append(LogMessisMetrics.create_positive_negative_image(self.images_to_log[phase]["post_majority"], self.images_to_log_targets[phase]))
         images.append(LogMessisMetrics.process_images(self.images_to_log_targets[phase], n_classes))
         images.append(LogMessisMetrics.process_images(self.field_ids_to_log_targets[phase].cpu()))
@@ -617,9 +618,30 @@ class LogMessisMetrics(pl.Callback):
 
         trainer.logger.experiment.log({f"{phase}_examples": examples})
 
+        # Log segmentation masks
+        input_data = self.inputs_to_log[phase].cpu().numpy()
+        middle_index = input_data.shape[1] // 2  # Get the middle image index
+        rgb_image = input_data[:3, middle_index, :, :].permute(1, 2, 0).numpy()  # Shape [224, 224, 3]
+        rgb_image = (rgb_image - rgb_image.min()) / (rgb_image.max() - rgb_image.min())
+        rgb_image = (rgb_image * 255).astype(np.uint8)
+
+        ground_truth_mask = self.images_to_log_targets[phase].cpu().numpy()
+        pre_majority_mask = self.images_to_log[phase]["pre_majority"].cpu().numpy()
+        post_majority_mask = self.images_to_log[phase]["post_majority"].cpu().numpy()
+        class_labels = {idx: name for idx, name in enumerate(self.feature_names_by_tier["tier3"])}
+
+        mask_img = wandb.Image(
+            rgb_image,
+            masks={
+                "pre_majority_predictions": {"mask_data": pre_majority_mask, "class_labels": class_labels},
+                "post_majority_predictions": {"mask_data": post_majority_mask, "class_labels": class_labels},
+                "ground_truth": {"mask_data": ground_truth_mask, "class_labels": class_labels}
+            },
+        )
+        trainer.logger.experiment.log({f"{phase}_segmentation_map": mask_img})
+
         if self.debug:
             print(f"{phase} epoch ended. Logging & resetting metrics...", trainer.sanity_checking)
-
 
     @staticmethod
     def create_positive_negative_image(generated_images, target_images):
@@ -644,7 +666,6 @@ class LogMessisMetrics(pl.Callback):
             colored_img[target == 0] = torch.tensor([0, 0, 0], dtype=torch.uint8)
             processed_imgs.append(colored_img.cpu())
         return processed_imgs
-
 
     @staticmethod
     def process_images(imgs, max=None):
