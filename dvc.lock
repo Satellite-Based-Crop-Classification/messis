@@ -61,8 +61,8 @@ stages:
       nfiles: 194
     - path: rasterize_labels.ipynb
       hash: md5
-      md5: 370668bbc51a43b49bb4c0412ea9e2e0
-      size: 5192919
+      md5: d1f6d35aa1ef9e23c1c52c4a5d54f9d8
+      size: 5192921
     params:
       params.yaml:
         max_cloud_cover: 5
@@ -79,7 +79,7 @@ stages:
     outs:
     - path: data/field_ids.tif
       hash: md5
-      md5: a52839a3bc7a4e4bb673a1f1ef741692
+      md5: a5b8ecd1cc3e9fa7b5cf885216f0ce73
       size: 104888680
     - path: data/labels.tif
       hash: md5
@@ -96,6 +96,10 @@ stages:
   prepare-dataset:
     cmd: papermill prepare_dataset.ipynb prepare_dataset.output.ipynb && rm prepare_dataset.output.ipynb
     deps:
+    - path: data/field_ids.tif
+      hash: md5
+      md5: a5b8ecd1cc3e9fa7b5cf885216f0ce73
+      size: 104888680
     - path: data/labels_hierarchy.tif
       hash: md5
       md5: 65ebb2ac0667f3998f1f90e4fdbaddc7
@@ -123,7 +127,7 @@ stages:
     outs:
     - path: data/chips
       hash: md5
-      md5: aa4d5bc612e588ac3e6e9ff75c52fe3c.dir
+      md5: 4e2f6f3de2b6d63b75fa37cfebbafe04.dir
       size: 871612430
       nfiles: 1209
     - path: data/stacked_features.tif
@@ -140,7 +144,7 @@ stages:
       size: 5075
     - path: data/chips
       hash: md5
-      md5: aa4d5bc612e588ac3e6e9ff75c52fe3c.dir
+      md5: 4e2f6f3de2b6d63b75fa37cfebbafe04.dir
       size: 871612430
       nfiles: 1209
     - path: data/labels_hierarchy.tif

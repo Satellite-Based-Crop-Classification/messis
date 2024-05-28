@@ -42,6 +42,7 @@ stages:
     - prepare_dataset.ipynb
     - data/satellite
     - data/labels_hierarchy.tif
+    - data/field_ids.tif
     params:
     - chip_size
     - number_of_folds
