@@ -457,7 +457,7 @@ class LogConfusionMatrix(pl.Callback):
                 confusion_matrix = metrics['confusion_matrix']
                 if self.debug:
                     print(f"Logging and resetting confusion matrix for {phase} {tier} Update count: {confusion_matrix._update_count}")
-                matrix = confusion_matrix.compute()
+                matrix = confusion_matrix.compute() # columns are predictions and rows are targets
 
                 fig, ax = plt.subplots(figsize=(matrix.size(0), matrix.size(0)), dpi=100)
 
@@ -469,7 +469,9 @@ class LogConfusionMatrix(pl.Callback):
                 clean_tier = tier.split('_')[0] if '_refined' in tier else tier
                 ax.set_xticklabels(self.dataset_info[clean_tier] + [''], rotation=45)
                 ax.set_yticklabels(self.dataset_info[clean_tier] + [''])
-
+                ax.set_xlabel('Predictions')
+                ax.set_ylabel('Targets')
+                
                 fig.tight_layout()
 
                 for i in range(matrix.size(0)):
