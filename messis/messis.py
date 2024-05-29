@@ -596,8 +596,10 @@ class LogMessisMetrics(pl.Callback):
                 for class_accuracy in metrics['per_class_accuracies'].values():
                     class_accuracy.reset()
         for mode in self.modes:
+            # TODO: Fix overall accuracy calculation
             # Overall accuracy
             overall_accuracy = sum(accuracies) / len(accuracies)
+            print("Calculated overall accuracy from len(accuracies): ", len(accuracies), overall_accuracy)
             pl_module.log(f"{phase}_accuracy_overall_{mode}", overall_accuracy, on_step=False, on_epoch=True)
 
         # use the same n_classes for all images, such that they are comparable
@@ -625,6 +627,9 @@ class LogMessisMetrics(pl.Callback):
         post_majority_masks = self.images_to_log[phase]["post_majority"].cpu().numpy()
         class_labels = {idx: name for idx, name in enumerate(self.feature_names_by_tier["tier3"])}
 
+        # ground_truth_masks = self.process_images(ground_truth_masks, max=len(class_labels))
+        # print(f"Ground Truth Masks [0] shape: {ground_truth_masks[0].shape}")
+
         segmentation_masks = []
         for input_data, ground_truth_mask, pre_majority_mask, post_majority_mask in zip(batch_input_data, ground_truth_masks, pre_majority_masks, post_majority_masks):
             middle_timestep_index = input_data.shape[1] // 2  # Get the middle timestamp index
@@ -646,23 +651,30 @@ class LogMessisMetrics(pl.Callback):
             print(f"Unique values in post_majority_mask: {np.unique(post_majority_mask)}")
 
             # Visualize the target mask separately to check for noise
+            lcmap = ListedColormap(plt.get_cmap('tab20').colors + plt.get_cmap('tab20b').colors + plt.get_cmap('tab20c').colors)
             plt.figure(figsize=(20, 5))
             plt.subplot(1, 4, 1)
             plt.imshow(rgb_image)
             plt.title("RGB Image")
             plt.subplot(1, 4, 2)
-            plt.imshow(ground_truth_mask, cmap='tab20')
+            plt.imshow(ground_truth_mask, cmap=lcmap)
             plt.title("Ground Truth Mask")
             plt.colorbar()
             plt.subplot(1, 4, 3)
-            plt.imshow(pre_majority_mask, cmap='tab20')
+            plt.imshow(pre_majority_mask, cmap=lcmap)
             plt.title("Pre Majority Mask")
             plt.colorbar()
             plt.subplot(1, 4, 4)
-            plt.imshow(post_majority_mask, cmap='tab20')
+            plt.imshow(post_majority_mask, cmap=lcmap)
             plt.title("Post Majority Mask")
             plt.colorbar()
             plt.show()
+
+            # process ground_truth_mask with process_images
+            # imgs = self.process_images(torch.tensor(ground_truth_mask).unsqueeze(0), max=len(class_labels))
+            # ground_truth_mask = imgs[0]
+            # plt.imshow(ground_truth_mask)
+            # plt.show()
 
             mask_img = wandb.Image(
                 rgb_image,
