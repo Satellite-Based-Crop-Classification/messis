@@ -469,9 +469,12 @@ class LogConfusionMatrix(pl.Callback):
                 row_sums = matrix.sum(dim=1, keepdim=True)
                 matrix_percent = matrix / row_sums
 
-                # assert percentages sum to 1 for each row
-                assert torch.allclose(matrix_percent.sum(dim=1), torch.ones(matrix.size(0), device=matrix_percent.device), atol=1e-2), "Percentages do not sum to 1 for each row"
-
+                # Ensure percentages sum to 1 for each row or handle NaNs
+                row_sum_check = matrix_percent.sum(dim=1)
+                valid_rows = ~torch.isnan(row_sum_check)
+                if valid_rows.any():
+                    assert torch.allclose(row_sum_check[valid_rows], torch.ones_like(row_sum_check[valid_rows]), atol=1e-2), "Percentages do not sum to 1 for some valid rows"
+                    
                 # Check for zero rows
                 zero_rows = (row_sums == 0).squeeze()
 
@@ -487,20 +490,24 @@ class LogConfusionMatrix(pl.Callback):
                 ax.set_yticklabels(self.dataset_info[clean_tier] + [''])
 
                 # Add total number of instances to the y-axis labels
-                y_labels = [f'{self.dataset_info[clean_tier][i]} [n={int(row_sums[i].item())}]' for i in range(matrix.size(0))]
+                y_labels = [f'{self.dataset_info[clean_tier][i]} [n={int(row_sums[i].item()):,.0f}]'.replace(',', "'") for i in range(matrix.size(0))]
                 ax.set_yticklabels(y_labels + [''])
 
                 ax.set_xlabel('Predictions')
                 ax.set_ylabel('Targets')
+
+                # Move x-axis label and ticks to the top
+                ax.xaxis.set_label_position('top')
+                ax.xaxis.set_ticks_position('top')
 
                 fig.tight_layout()
 
                 for i in range(matrix.size(0)):
                     for j in range(matrix.size(1)):
                         if zero_rows[i]:
-                            ax.text(j, i, 'N/A', ha='center', va='center', color='white')
+                            ax.text(j, i, 'N/A', ha='center', va='center', color='black')
                         else:
-                            ax.text(j, i, f'{matrix_percent[i, j]:.2f}', ha='center', va='center', color='white')
+                            ax.text(j, i, f'{matrix_percent[i, j]:.2f}', ha='center', va='center', color='#F88379', weight='bold') # turqiouse
                 trainer.logger.experiment.log({f"{phase}_{tier}_confusion_matrix_{mode}": wandb.Image(fig)})
                 plt.close()
                 confusion_matrix.reset()
