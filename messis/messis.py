@@ -397,8 +397,8 @@ class LogConfusionMatrix(pl.Callback):
                 for field_id in np.unique(field_ids_batch.cpu().numpy()):
                     field_mask = field_ids_batch == field_id
                     flattened_pred = original_preds[i_tier, j_batch][field_mask].view(-1)  # Flatten the prediction
+                    # NOTE: Running on MPS, the check below is necessary (mode calc can't run on MPS GPU, on CPU error if numel 0)
                     # if flattened_pred.numel() == 0:
-                    # print(f"Skipping empty flattened_pred for field ID {field_id}")
                     #   continue  # Skip if there are no elements
                     mode_pred, _ = torch.mode(flattened_pred)  # Compute mode prediction
                     majority_preds[i_tier, j_batch][field_mask] = mode_pred.item()
