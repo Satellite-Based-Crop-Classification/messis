@@ -462,11 +462,22 @@ class LogConfusionMatrix(pl.Callback):
                 confusion_matrix = metrics['confusion_matrix']
                 if self.debug:
                     print(f"Logging and resetting confusion matrix for {phase} {tier} Update count: {confusion_matrix._update_count}")
-                matrix = confusion_matrix.compute() # columns are predictions and rows are targets
+                matrix = confusion_matrix.compute()  # columns are predictions and rows are targets
+
+                # Calculate percentages
+                matrix = matrix.float()
+                row_sums = matrix.sum(dim=1, keepdim=True)
+                matrix_percent = matrix / row_sums
+
+                # assert percentages sum to 1 for each row
+                assert torch.allclose(matrix_percent.sum(dim=1), torch.ones(matrix.size(0), device=matrix_percent.device), atol=1e-2), "Percentages do not sum to 1 for each row"
+
+                # Check for zero rows
+                zero_rows = (row_sums == 0).squeeze()
 
                 fig, ax = plt.subplots(figsize=(matrix.size(0), matrix.size(0)), dpi=100)
 
-                ax.matshow(matrix.cpu().numpy(), cmap='viridis')
+                ax.matshow(matrix_percent.cpu().numpy(), cmap='viridis')
 
                 ax.xaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(1)+1)))
                 ax.yaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(0)+1)))
@@ -474,14 +485,22 @@ class LogConfusionMatrix(pl.Callback):
                 clean_tier = tier.split('_')[0] if '_refined' in tier else tier
                 ax.set_xticklabels(self.dataset_info[clean_tier] + [''], rotation=45)
                 ax.set_yticklabels(self.dataset_info[clean_tier] + [''])
+
+                # Add total number of instances to the y-axis labels
+                y_labels = [f'{self.dataset_info[clean_tier][i]} [n={int(row_sums[i].item())}]' for i in range(matrix.size(0))]
+                ax.set_yticklabels(y_labels + [''])
+
                 ax.set_xlabel('Predictions')
                 ax.set_ylabel('Targets')
-                
+
                 fig.tight_layout()
 
                 for i in range(matrix.size(0)):
                     for j in range(matrix.size(1)):
-                        ax.text(j, i, f'{matrix[i, j]:.0f}', ha='center', va='center', color='white')
+                        if zero_rows[i]:
+                            ax.text(j, i, 'N/A', ha='center', va='center', color='white')
+                        else:
+                            ax.text(j, i, f'{matrix_percent[i, j]:.2f}', ha='center', va='center', color='white')
                 trainer.logger.experiment.log({f"{phase}_{tier}_confusion_matrix_{mode}": wandb.Image(fig)})
                 plt.close()
                 confusion_matrix.reset()
