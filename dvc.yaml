@@ -29,12 +29,12 @@ stages:
     - paths.labels
     - paths.labels_hierarchy
     - paths.field_ids
-    - paths.tier_names
+    - paths.dataset_info
     outs:
     - data/labels.tif
     - data/labels_hierarchy.tif
     - data/field_ids.tif
-    - data/tier_names.json
+    - data/dataset_info.json
 
   prepare-dataset:
     cmd: papermill prepare_dataset.ipynb prepare_dataset.output.ipynb && rm prepare_dataset.output.ipynb
@@ -70,7 +70,7 @@ stages:
     - number_of_bands
     - number_of_folds
     outs:
-    - data/chips_fold_stats.yaml
+    - data/chips_stats.yaml
   
   download-prithvi-base-model:
     cmd: papermill download_prithvi_100M.ipynb download_prithvi_100M.output.ipynb && rm download_prithvi_100M.output.ipynb
@@ -81,4 +81,4 @@ stages:
 
   # train-model:
     # deps: download-prithvi-base-model
-    #    - data/tier_names.json
+    #    - data/dataset_info.json

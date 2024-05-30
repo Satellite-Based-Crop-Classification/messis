@@ -2,3 +2,4 @@ calculate_dataset_stats.ipynb text=auto eol=lf
 download_satellite_data.ipynb text=auto eol=lf
 rasterize_labels.ipynb text=auto eol=lf
 prepare_dataset.ipynb text=auto eol=lf
+download_prithvi_100M.ipynb text=auto eol=lf
