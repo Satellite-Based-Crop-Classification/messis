@@ -507,7 +507,7 @@ class LogConfusionMatrix(pl.Callback):
                         if zero_rows[i]:
                             ax.text(j, i, 'N/A', ha='center', va='center', color='black')
                         else:
-                            ax.text(j, i, f'{matrix_percent[i, j]:.2f}', ha='center', va='center', color='#F88379', weight='bold') # turqiouse
+                            ax.text(j, i, f'{matrix_percent[i, j]:.2f}', ha='center', va='center', color='#F88379', weight='bold') # coral red
                 trainer.logger.experiment.log({f"{phase}_{tier}_confusion_matrix_{mode}": wandb.Image(fig)})
                 plt.close()
                 confusion_matrix.reset()
