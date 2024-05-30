@@ -661,9 +661,9 @@ class LogMessisMetrics(pl.Callback):
         # Log segmentation masks
         batch_input_data = self.inputs_to_log[phase].cpu() # shape [BS, 6, 3, 224, 224]
         ground_truth_masks = self.images_to_log_targets[phase].cpu().numpy()
-        pixel_wise_masks = self.images_to_log[phase]["pixel_wise"].cpu().numpy()
-        field_majority_masks = self.images_to_log[phase]["field_majority"].cpu().numpy()
-        class_labels = {idx: name for idx, name in enumerate(self.feature_names_by_tier["tier3"])}
+        pixel_wise_masks = self.images_to_log[phase]["pixelwise"].cpu().numpy()
+        field_majority_masks = self.images_to_log[phase]["majority"].cpu().numpy()
+        class_labels = {idx: name for idx, name in enumerate(self.dataset_info["tier3"])}
 
         segmentation_masks = []
         for input_data, ground_truth_mask, pixel_wise_mask, field_majority_mask in zip(batch_input_data, ground_truth_masks, pixel_wise_masks, field_majority_masks):
