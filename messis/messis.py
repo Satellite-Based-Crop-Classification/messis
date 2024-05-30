@@ -588,7 +588,7 @@ class LogMessisMetrics(pl.Callback):
             self.images_to_log[phase][mode] = preds[-1]
             
             for pred, target, tier in zip(preds, targets, self.tiers):
-                # flatten and remove background class if the mode is majority (such that the background class is not considered in the metrics
+                # flatten and remove background class if the mode is majority (such that the background class is not considered in the metrics)
                 if mode == 'majority':
                     pred = pred[target != 0]
                     target = target[target != 0]
