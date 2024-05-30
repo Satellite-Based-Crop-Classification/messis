@@ -375,13 +375,22 @@ class LogConfusionMatrix(pl.Callback):
                 if self.debug:
                     print(f"Updating confusion matrix for {phase} {tier} {mode}")
                 metrics = self.metrics[phase][tier][mode]
+                # flatten and remove background class if the mode is majority (such that the background class is not included in the confusion matrix)
+                if mode == 'majority':
+                    pred = pred[target != 0]
+                    target = target[target != 0]
                 metrics['confusion_matrix'].update(pred, target)
 
 
     @staticmethod
     def get_pixelwise_and_majority_outputs(outputs, field_ids, dataset_info):
         """
-        Get the pixelwise and majority predictions from the model outputs (based on tier3_refined).
+        Get the pixelwise and majority predictions from the model outputs.
+        The pixelwise tier 1 and 2 are derived from the tier3_refined predictions. 
+        The majority tier 3 is first derived from the tier3_refined predictions. And then the majority tier 1 and 2 are derived from the majority tier 3 predictions.
+
+        Also sets the background to 0 for all field majority predictions (regardless of what the model predicts for the background class).
+        As this is a classification task and not a segmentation task and the field boundaries are known beforehand and not of any interest.
 
         Args:
             outputs (torch.Tensor(batch, H, W)): The model outputs for tier3_refined.
@@ -421,7 +430,7 @@ class LogConfusionMatrix(pl.Callback):
     @staticmethod
     def get_field_majority_preds(pixelwise, field_ids):
         """
-        Get the majority prediction for each field in the batch.
+        Get the majority prediction for each field in the batch. The majority excludes the background class.
 
         Args:
             pixelwise (torch.Tensor(batch, H, W)): The pixelwise predictions.
@@ -434,9 +443,14 @@ class LogConfusionMatrix(pl.Callback):
         for batch in range(len(pixelwise)):
             field_ids_batch = field_ids[batch]
             for field_id in np.unique(field_ids_batch.cpu().numpy()):
+                if field_id == 0:
+                    continue
                 field_mask = field_ids_batch == field_id
                 flattened_pred = pixelwise[batch][field_mask].view(-1)  # Flatten the prediction
-                mode_pred, _ = torch.mode(flattened_pred)  # Compute mode prediction
+                flattened_pred = flattened_pred[flattened_pred != 0]  # Exclude background class
+                if len(flattened_pred) == 0:
+                    continue
+                mode_pred, _ = torch.mode(flattened_pred) # Compute mode prediction
                 majority_preds[batch][field_mask] = mode_pred.item()
         return majority_preds
 
@@ -574,6 +588,10 @@ class LogMessisMetrics(pl.Callback):
             self.images_to_log[phase][mode] = preds[-1]
             
             for pred, target, tier in zip(preds, targets, self.tiers):
+                # flatten and remove background class if the mode is majority (such that the background class is not considered in the metrics)
+                if mode == 'majority':
+                    pred = pred[target != 0]
+                    target = target[target != 0]
                 metrics = self.metrics[phase][tier][mode]
                 for metric in self.metrics_to_compute:
                     metrics[metric].update(pred, target)
