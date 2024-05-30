@@ -375,6 +375,10 @@ class LogConfusionMatrix(pl.Callback):
                 if self.debug:
                     print(f"Updating confusion matrix for {phase} {tier} {mode}")
                 metrics = self.metrics[phase][tier][mode]
+                # flatten and remove background class if the mode is majority (such that the background class is not included in the confusion matrix)
+                if mode == 'majority':
+                    pred = pred[target != 0]
+                    target = target[target != 0]
                 metrics['confusion_matrix'].update(pred, target)
 
 
@@ -584,6 +588,10 @@ class LogMessisMetrics(pl.Callback):
             self.images_to_log[phase][mode] = preds[-1]
             
             for pred, target, tier in zip(preds, targets, self.tiers):
+                # flatten and remove background class if the mode is majority (such that the background class is not included in the confusion matrix)
+                if mode == 'majority':
+                    pred = pred[target != 0]
+                    target = target[target != 0]
                 metrics = self.metrics[phase][tier][mode]
                 for metric in self.metrics_to_compute:
                     metrics[metric].update(pred, target)
