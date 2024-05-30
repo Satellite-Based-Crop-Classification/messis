@@ -604,7 +604,6 @@ class LogMessisMetrics(pl.Callback):
     def __on_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule, phase):
         if trainer.sanity_checking:
             return # Skip during sanity check (avoid warning about metric compute being called before update)
-        accuracies = []
         for tier in self.tiers:
             for mode in self.modes:
                 metrics = self.metrics[phase][tier][mode]
@@ -615,8 +614,6 @@ class LogMessisMetrics(pl.Callback):
                 for metric in self.metrics_to_compute:
                     metrics[metric].reset()
 
-                # Collect accuracies for overall accuracy calculation
-                accuracies.append(metrics_dict['accuracy'])
                 class_names_mapping = self.dataset_info[tier.split('_')[0] if '_refined' in tier else tier] 
 
                 class_accuracies = []
@@ -624,18 +621,10 @@ class LogMessisMetrics(pl.Callback):
                     if class_accuracy._update_count == 0:
                         continue  # Skip if no updates have been made
                     class_accuracies.append([class_index, class_names_mapping[class_index], class_accuracy.compute()])
+                    class_accuracy.reset()
                 wandb_table = wandb.Table(data=class_accuracies, columns=["Class Index", "Class Name", "Accuracy"])
-
                 # Log the table
                 trainer.logger.experiment.log({f"{phase}_per_class_accuracies_{tier}_{mode}": wandb_table})
-
-                # Reset the per-class accuracies
-                for class_accuracy in metrics['per_class_accuracies'].values():
-                    class_accuracy.reset()
-        for mode in self.modes:
-            # Overall accuracy
-            overall_accuracy = sum(accuracies) / len(accuracies)
-            pl_module.log(f"{phase}_accuracy_overall_{mode}", overall_accuracy, on_step=False, on_epoch=True)
 
         # use the same n_classes for all images, such that they are comparable
         n_classes = max([
