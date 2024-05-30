@@ -298,7 +298,7 @@ class Messis(pl.LightningModule):
 
     def __step(self, batch, batch_idx, stage):
         inputs, targets = batch
-        targets = targets[0]
+        targets = torch.stack(targets[0])
         outputs = self(inputs)
         loss = self.model.calculate_loss(outputs, targets)
 
@@ -318,7 +318,7 @@ class LogConfusionMatrix(pl.Callback):
         assert hparams.get('tiers') is not None, "Tiers must be defined in the hparams"
 
         self.tiers_dict = hparams.get('tiers')
-        self.tiers = list(hparams.get('tiers').keys())
+        self.tiers = ['tier1', 'tier2', 'tier3']
         self.phases = ['train', 'val', 'test']
         self.modes = ['pixelwise', 'majority']
         self.debug = debug
@@ -360,7 +360,7 @@ class LogConfusionMatrix(pl.Callback):
         if trainer.sanity_checking:
             return
 
-        targets = batch[1][0] # (tiers, batch, H, W)
+        targets = torch.stack(batch[1][0]) # (tiers, batch, H, W)
         outputs = outputs['outputs'][3] # (batch, H, W)        
         field_ids = batch[1][1].permute(1, 0, 2, 3)[0]
 
@@ -412,7 +412,6 @@ class LogConfusionMatrix(pl.Callback):
         majority_outputs = torch.stack((majority_tier1, majority_tier2, majority_tier3))
 
         # Ensure these are tensors
-        print("Shape of pixelwise_outputs: ", pixelwise_outputs.shape, "Shape of majority_outputs: ", majority_outputs.shape)
         assert isinstance(pixelwise_outputs, torch.Tensor), "pixelwise_outputs is not a tensor"
         assert isinstance(majority_outputs, torch.Tensor), "majority_outputs is not a tensor"
 
@@ -495,7 +494,7 @@ class LogMessisMetrics(pl.Callback):
         assert hparams.get('tiers') is not None, "Tiers must be defined in the hparams"
 
         self.tiers_dict = hparams.get('tiers')
-        self.tiers = list(self.tiers_dict.keys())
+        self.tiers = ['tier1', 'tier2', 'tier3']
         self.phases = ['train', 'val', 'test']
         self.modes = ['pixelwise', 'majority']
         self.debug = debug
@@ -559,24 +558,20 @@ class LogMessisMetrics(pl.Callback):
             return
         if self.debug:
             print(f"{phase} batch ended. Updating metrics...")
-       
-        targets = batch[1][0] # (tiers, batch, H, W)
-        outputs = outputs['outputs'][3] # (batch, H, W)        
+
+        targets = torch.stack(batch[1][0]) # (tiers, batch, H, W)
+        outputs = outputs['outputs'][-1] # (batch, H, W)        
         field_ids = batch[1][1].permute(1, 0, 2, 3)[0]
 
         pixelwise_outputs, majority_outputs = LogConfusionMatrix.get_pixelwise_and_majority_outputs(outputs, field_ids, self.dataset_info)        
 
         for preds, mode in zip([pixelwise_outputs, majority_outputs], self.modes):
-            print(targets)
-            print('__on_batch_end', preds.shape)
-            print('__on_batch_end', targets.shape)
-            print('__on_batch_end', field_ids.shape)
 
             # Update all metrics
             assert preds.shape == targets.shape, f"Shapes of predictions and targets do not match: {preds.shape} vs {targets.shape}"
             assert preds.shape[0] == len(self.tiers), f"Number of tiers in predictions and tiers do not match: {preds.shape[0]} vs {len(self.tiers)}"
            
-            self.images_to_log[phase][mode] = preds[3]
+            self.images_to_log[phase][mode] = preds[-1]
             
             for pred, target, tier in zip(preds, targets, self.tiers):
                 metrics = self.metrics[phase][tier][mode]
@@ -586,8 +581,8 @@ class LogMessisMetrics(pl.Callback):
                         print(f"{phase} {tier} {mode} {metric} updated. Update count: {metrics[metric]._update_count}")
                 self.__update_per_class_accuracy(pred, target, metrics['per_class_accuracies'])
 
-        self.images_to_log_targets[phase] = targets[3]
-        self.field_ids_to_log_targets[phase] = field_ids[0]
+        self.images_to_log_targets[phase] = targets[-1]
+        self.field_ids_to_log_targets[phase] = field_ids
 
     def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
         for class_index, class_accuracy in per_class_accuracies.items():
