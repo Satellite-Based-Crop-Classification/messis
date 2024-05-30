@@ -679,8 +679,8 @@ class LogMessisMetrics(pl.Callback):
             mask_img = wandb.Image(
                 rgb_image,
                 masks={
-                    "pixel_wise_predictions": {"mask_data": pre_majority_mask, "class_labels": class_labels},
-                    "field_majority_predictions": {"mask_data": post_majority_mask, "class_labels": class_labels},
+                    "predictions_pixel_wise": {"mask_data": pre_majority_mask, "class_labels": class_labels},
+                    "predictions_field_majority": {"mask_data": post_majority_mask, "class_labels": class_labels},
                     "ground_truth": {"mask_data": ground_truth_mask, "class_labels": class_labels}
                 },
             )
