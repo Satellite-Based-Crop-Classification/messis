@@ -127,7 +127,7 @@ class LabelRefinementHead(nn.Module):
         return y
 
 class HierarchicalClassifier(nn.Module):
-    def __init__(self, num_classes_tier1, num_classes_tier2, num_classes_tier3, img_size=256, patch_size=16, num_frames=3, bands=[0, 1, 2, 3, 4, 5], weight_tier1=1.0, weight_tier2=1.0, weight_tier3=1.0, weight_tier3_refined=1.0, unfreeze_backbone=False, debug=False):
+    def __init__(self, num_classes_tier1, num_classes_tier2, num_classes_tier3, img_size=256, patch_size=16, num_frames=3, bands=[0, 1, 2, 3, 4, 5], weight_tier1=1.0, weight_tier2=1.0, weight_tier3=1.0, weight_tier3_refined=1.0, freeze_backbone=True, debug=False):
         super(HierarchicalClassifier, self).__init__()
 
         self.embed_dim=768
@@ -158,7 +158,7 @@ class HierarchicalClassifier(nn.Module):
 
         # (Un)freeze the backbone
         for param in self.prithvi.parameters():
-            param.requires_grad = unfreeze_backbone
+            param.requires_grad = not freeze_backbone
 
         # Neck to transform the token-based output of the transformer into a spatial feature map
         self.neck = ConvTransformerTokensToEmbeddingNeck(
@@ -277,7 +277,7 @@ class Messis(pl.LightningModule):
             weight_tier2=hparams['tiers']['tier2']['loss_weight'],
             weight_tier3=hparams['tiers']['tier3']['loss_weight'],
             weight_tier3_refined=hparams['tiers']['tier3_refined']['loss_weight'],
-            unfreeze_backbone=hparams['unfreeze_backbone'],
+            freeze_backbone=hparams['freeze_backbone'],
             debug=hparams.get('debug')
         )
 
