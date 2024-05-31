@@ -106,7 +106,7 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 
     ```bash
     dvc remote modify gdrive gdrive_use_service_account true
-    dvc remote modify gdrive --local gdrive_service_account_json_file_path service-account-yvo.json
+    dvc remote modify gdrive --local gdrive_service_account_json_file_path .dvc/service-account-yvo.json
     ```
 
 9. Pull the data
