@@ -131,10 +131,57 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 ## Training
 
 Resources for optimizing the training:
-- https://lightning.ai/docs/pytorch/stable/accelerators/gpu_intermediate.html
 - https://archive.is/ELPqJ
+- https://lightning.ai/docs/pytorch/stable/accelerators/gpu_intermediate.html
 - PyTorch Lightning SLURM: https://lightning.ai/docs/pytorch/stable/clouds/cluster_advanced.html
 
 Slurm Commands:
 - Show SLURM Cluster nodes with GPU Info: `scontrol show nodes`
 - Cancel SLURM Job: `scancel job_id`
+
+### Use Multi-GPU Training on SLURM
+
+Make sure the config in `messis-lightning.sh` and `model_training.ipynb` are correctly set up and have the same values.
+
+See the parameters --nodes, --gres and -ntasks-per-node (--gres and --ntasks-per-node must match) in the SLURM script:
+
+```bash
+#!/bin/sh
+#SBATCH --time=08:00:00
+#SBATCH --nodes=1             # This needs to match Trainer(num_nodes=...)
+#SBATCH --gres=gpu:2
+#SBATCH --ntasks-per-node=2   # This needs to match Trainer(devices=...)
+#SBATCH --partition=performance
+#SBATCH --out=slurm/logs/model_training.ipynb_out.txt
+#SBATCH --err=slurm/logs/model_training.ipynb_out.txt
+#SBATCH --job-name="messis"
+```
+
+The counterpart in the notebook, see num_nodes and devices, must match the SLURM script:
+
+```python
+trainer = Trainer(
+    logger=wandb_logger,
+    log_every_n_steps=1,
+    callbacks=[
+        LogMessisMetrics  (hparams, params['paths']['dataset_info'], debug=False),
+        LogConfusionMatrix(hparams, params['paths']['dataset_info'], debug=False),
+        early_stopping
+    ],
+    accumulate_grad_batches=hparams['accumulate_grad_batches'],  # Gradient accumulation
+    max_epochs=hparams['max_epochs'],
+    accelerator="gpu",
+    strategy="ddp",         # Use Distributed Data Parallel
+    num_nodes=1,            # Number of nodes
+    devices=2,              # Number of GPUs to use
+    precision='16-mixed'    # Train with 16-bit precision (https://lightning.ai/docs/pytorch/stable/common/trainer.html#precision)
+)
+```
+
+Then, make sure you are starting the python script with `srun` in `messis-lightning.sh`:
+
+```bash
+poetry run srun python model_training.py  # Essential to use srun for multi-GPU training!
+```
+
+To start the training, run `sbatch messis-lightning.sh` in the terminal of the SLURM login node.

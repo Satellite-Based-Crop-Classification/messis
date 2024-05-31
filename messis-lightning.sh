@@ -1,8 +1,8 @@
 #!/bin/sh
 #SBATCH --time=08:00:00
 #SBATCH --nodes=1             # This needs to match Trainer(num_nodes=...)
-#SBATCH --gres=gpu:1
-#SBATCH --ntasks-per-node=1   # This needs to match Trainer(devices=...)
+#SBATCH --gres=gpu:2
+#SBATCH --ntasks-per-node=2   # This needs to match Trainer(devices=...)
 #SBATCH --partition=performance
 #SBATCH --out=slurm/logs/model_training.ipynb_out.txt
 #SBATCH --err=slurm/logs/model_training.ipynb_out.txt
@@ -20,6 +20,7 @@ poetry run dvc pull
 poetry run dvc repro
 
 poetry run jupyter nbconvert --to script model_training.ipynb
-poetry run python model_training.py
+poetry run srun python model_training.py  # Essential to use srun for multi-GPU training!
 
-# poetry run papermill model_training.ipynb model_training.output.ipynb
+# For debugging, use papermill to run the notebook and see print statements
+# poetry run srun papermill model_training.ipynb model_training.output.ipynb

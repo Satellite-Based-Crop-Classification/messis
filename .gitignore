@@ -167,3 +167,4 @@ slurm/
 
 *.ckpt
 *.output.ipynb
+model_training.py
