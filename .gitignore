@@ -165,7 +165,5 @@ prithvi/data
 wandb/
 slurm/
 
-messis-lightning.output.ipynb
-model_training.output.ipynb
-model_training.py
 *.ckpt
+*.output.ipynb

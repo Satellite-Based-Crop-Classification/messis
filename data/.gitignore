@@ -14,5 +14,5 @@
 /stacked_features.tif
 /field_ids.tif
 /labels.tif
-/chips_fold_stats.yaml
-/tier_names.json
+/chips_stats.yaml
+/dataset_info.json
