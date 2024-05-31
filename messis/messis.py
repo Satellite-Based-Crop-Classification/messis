@@ -308,7 +308,7 @@ class Messis(pl.LightningModule):
             print(f"Step Outputs shape: {safe_shape(outputs)}")
 
         # NOTE: All metrics other than loss are tracked by callbacks (LogMessisMetrics)
-        self.log('loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log(f'{stage}_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {'loss': loss, 'outputs': outputs}
         
 class LogConfusionMatrix(pl.Callback):
