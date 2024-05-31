@@ -185,6 +185,7 @@ class GeospatialDataModule(LightningDataModule):
             self.train_dataset = GeospatialDataset(train=True,  subset_size=self.subsets.get('train', None), **common_params)
             self.val_dataset   = GeospatialDataset(train=False, subset_size=self.subsets.get('val',   None), **common_params)
         if stage in ('test', None):
+            # TODO: Fix this, we should not be using the same dataset for val and test
             self.test_dataset  = GeospatialDataset(train=False, subset_size=self.subsets.get('test',  None), **common_params)
 
     def train_dataloader(self):
