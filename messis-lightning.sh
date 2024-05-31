@@ -1,14 +1,15 @@
 #!/bin/sh
-#SBATCH --time=00:15:00
-#SBATCH --cpus-per-task=2
-#SBATCH --mem=16G
-#SBATCH --gres=gpu:2
+#SBATCH --time=08:00:00
+#SBATCH --nodes=1             # This needs to match Trainer(num_nodes=...)
+#SBATCH --gres=gpu:1
+#SBATCH --ntasks-per-node=1   # This needs to match Trainer(devices=...)
 #SBATCH --partition=performance
-#SBATCH --ntasks-per-node=1
 #SBATCH --out=slurm/logs/model_training.ipynb_out.txt
-#SBATCH --err=slurm/logs/model_training.ipynb_err.txt
-#SBATCH --job-name="messis.train"
+#SBATCH --err=slurm/logs/model_training.ipynb_out.txt
+#SBATCH --job-name="messis"
+# To exclude: SBATCH --exclude=gpu22a
 
+# Config above according to: https://lightning.ai/docs/pytorch/stable/clouds/cluster_advanced.html
 
 # For testing add before each command:
 # srun --partition performance
@@ -19,4 +20,8 @@ mkdir -p slurm/logs
 poetry run dvc pull
 poetry run dvc repro
 
-poetry run papermill model_training.ipynb model_training.output.ipynb
+poetry run jupyter nbconvert --to script model_training.ipynb
+poetry run srun python model_training.py  # Essential to use srun for multi-GPU training!
+
+# For debugging, use papermill to run the notebook and see print statements
+# poetry run srun papermill model_training.ipynb model_training.output.ipynb
