@@ -361,7 +361,7 @@ class LogConfusionMatrix(pl.Callback):
             return
 
         targets = torch.stack(batch[1][0]) # (tiers, batch, H, W)
-        outputs = outputs['outputs'][3] # (batch, H, W)        
+        outputs = outputs['outputs'][3] # (batch, C, H, W)
         field_ids = batch[1][1].permute(1, 0, 2, 3)[0]
 
         pixelwise_outputs, majority_outputs = LogConfusionMatrix.get_pixelwise_and_majority_outputs(outputs, field_ids, self.dataset_info)        
@@ -393,7 +393,7 @@ class LogConfusionMatrix(pl.Callback):
         As this is a classification task and not a segmentation task and the field boundaries are known beforehand and not of any interest.
 
         Args:
-            outputs (torch.Tensor(batch, H, W)): The model outputs for tier3_refined.
+            outputs (torch.Tensor(batch, C, H, W)): The probability outputs from the model for tier3_refined.
             field_ids (torch.Tensor(batch, H, W)): The field IDs for each prediction.
             dataset_info (dict): The dataset information.
 
@@ -403,7 +403,7 @@ class LogConfusionMatrix(pl.Callback):
         """
         
         pixelwise_tier3 = torch.softmax(outputs, dim=1).argmax(dim=1) # (batch, H, W)
-        majority_tier3 = LogConfusionMatrix.get_field_majority_preds(pixelwise_tier3, field_ids)
+        majority_tier3 = LogConfusionMatrix.get_field_majority_preds(outputs, field_ids)
 
         tier3_to_tier1, tier3_to_tier2 = dataset_info['tier3_to_tier1'], dataset_info['tier3_to_tier2']
 
@@ -428,17 +428,19 @@ class LogConfusionMatrix(pl.Callback):
 
 
     @staticmethod
-    def get_field_majority_preds(pixelwise, field_ids):
+    def get_field_majority_preds(output, field_ids):
         """
         Get the majority prediction for each field in the batch. The majority excludes the background class.
 
         Args:
-            pixelwise (torch.Tensor(batch, H, W)): The pixelwise predictions.
+            output (torch.Tensor(batch, C, H, W)): The probability outputs from the model (tier3_refined)
             field_ids (torch.Tensor(batch, H, W)): The field IDs for each prediction.
 
         Returns:
             torch.Tensor(batch, H, W): The majority predictions.
         """
+        # remove the background class
+        pixelwise = torch.softmax(output[:, 1:, :, :], dim=1).argmax(dim=1) + 1  # (batch, H, W)
         majority_preds = torch.zeros_like(pixelwise)
         for batch in range(len(pixelwise)):
             field_ids_batch = field_ids[batch]
