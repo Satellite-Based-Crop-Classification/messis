@@ -4,8 +4,8 @@
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks-per-node=1   # This needs to match Trainer(devices=...)
 #SBATCH --partition=performance
-#SBATCH --out=slurm/logs/model_training.ipynb_out.txt
-#SBATCH --err=slurm/logs/model_training.ipynb_out.txt
+#SBATCH --out=logs/slurm/model_training.ipynb_out.txt
+#SBATCH --err=logs/slurm/model_training.ipynb_out.txt
 #SBATCH --job-name="messis"
 # To exclude: SBATCH --exclude=gpu22a
 
@@ -15,7 +15,7 @@
 # srun --partition performance
 
 # Create the directory for SLURM log files if it does not exist
-mkdir -p slurm/logs
+mkdir -p logs/slurm
 
 poetry run dvc pull
 poetry run dvc repro
