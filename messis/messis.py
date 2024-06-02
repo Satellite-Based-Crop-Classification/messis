@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import matplotlib.ticker as ticker
 from matplotlib.colors import ListedColormap
+from huggingface_hub import PyTorchModelHubMixin
 
 import json
 
@@ -260,7 +261,7 @@ class HierarchicalClassifier(nn.Module):
 
         return loss_tier1 * self.weight_tier1 + loss_tier2 * self.weight_tier2 + loss_tier3 * self.weight_tier3 + loss_tier3_refined * self.weight_tier3_refined
  
-class Messis(pl.LightningModule):
+class Messis(pl.LightningModule, PyTorchModelHubMixin):
     def __init__(self, hparams):
         super().__init__()
         self.save_hyperparameters(hparams)
