@@ -357,12 +357,13 @@ class TemporalViTEncoder(nn.Module):
             missing_keys, unexpected_keys = self.load_state_dict(checkpoint_state_dict, strict=False)
             
             if missing_keys:
-                print("Warning: Missing keys in the state dict:", missing_keys)
+                print("TemporalViTEncoder | Warning: Missing keys in the state dict:", missing_keys)
             if unexpected_keys:
-                print("Warning: Unexpected keys in the state dict:", unexpected_keys)
-            print(f"Loaded pretrained weights from '{self.pretrained}' with partial matching.")
+                print("TemporalViTEncoder | Warning: Unexpected keys in the state dict:", unexpected_keys)
+            print(f"TemporalViTEncoder | Loaded pretrained weights from '{self.pretrained}' with partial matching.")
         elif self.pretrained is None:
             # initialize nn.Linear and nn.LayerNorm
+            print('TemporalViTEncoder | Initializing weights from scratch.')
             self.apply(self._init_weights)
 
     def _init_weights(self, m):
