@@ -1,5 +1,5 @@
 chip_size: 224
-number_of_folds: 5
+number_of_folds: 6
 search_dates: '2019-03-01T00:00:00.000Z/2019-10-01T00:00:00.000Z'
 max_cloud_cover: 5
 zueri_crop:
