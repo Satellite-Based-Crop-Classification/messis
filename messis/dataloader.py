@@ -65,7 +65,7 @@ class GeospatialDataset(Dataset):
         
         # Adjust file selection based on fold
         for file in os.listdir(self.chips_dir):
-            if re.match(f".*_fold_[{"".join(fold_indicies)}]_merged.tif", file):
+            if re.match(f".*_fold_[{"".join([str(f) for f in fold_indicies])}]_merged.tif", file):
                 self.images.append(file)
                 mask_file = file.replace("_merged.tif", "_mask.tif")
                 self.masks.append(mask_file)
@@ -97,8 +97,8 @@ class GeospatialDataset(Dataset):
                 raise ValueError(f"mean/std stats for fold {fold} not found in {stats_path}")
             if self.debug:
                 print(f"Stats with selected test fold {fold}: {stats[key]} over {n_timesteps} timesteps.")
-            mean_list.append(stats[key]['mean']) # list of 6 means
-            std_list.append(stats[key]['std']) # list of 6 stds
+            mean_list.append(torch.Tensor(stats[key]['mean'])) # list of 6 means
+            std_list.append(torch.Tensor(stats[key]['std'])) # list of 6 stds
             n_list.append(stats[key]['n_chips']) # list of 6 ns
         # aggregate means and stds over all folds
         means, stds = [], []
