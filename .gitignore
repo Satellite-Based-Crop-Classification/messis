@@ -164,6 +164,8 @@ prithvi/data
 .DS_Store
 wandb/
 slurm/
+logs/
+hf_cache/
 
 *.ckpt
 *.output.ipynb
