@@ -1,3 +1,4 @@
+from safetensors import safe_open
 import torch
 import torch.nn as nn
 import numpy as np
@@ -346,25 +347,34 @@ class TemporalViTEncoder(nn.Module):
         w = self.patch_embed.proj.weight.data
         torch.nn.init.xavier_uniform_(w.view([w.shape[0], -1]))
 
-        if isinstance(self.pretrained, str):
+        # load pretrained weights
+        if self.pretrained:
+            if self.pretrained.endswith('.safetensors'):
+                self._load_safetensors_weights()
+            else:
+                self._load_pt_weights()
+        else:
             self.apply(self._init_weights)
 
-            # NOTE: Implemented custom loading of pretrained weights, that does not need MMCV load_checkpoint
-            checkpoint = torch.load(self.pretrained, map_location='cpu')
-            checkpoint_state_dict = checkpoint.get('state_dict', checkpoint)  # handle cases where state_dict is directly in checkpoint
-            
-            # Load state dict properly
-            missing_keys, unexpected_keys = self.load_state_dict(checkpoint_state_dict, strict=False)
-            
-            if missing_keys:
-                print("TemporalViTEncoder | Warning: Missing keys in the state dict:", missing_keys)
-            if unexpected_keys:
-                print("TemporalViTEncoder | Warning: Unexpected keys in the state dict:", unexpected_keys)
-            print(f"TemporalViTEncoder | Loaded pretrained weights from '{self.pretrained}' with partial matching.")
-        elif self.pretrained is None:
-            # initialize nn.Linear and nn.LayerNorm
-            print('TemporalViTEncoder | Initializing weights from scratch.')
-            self.apply(self._init_weights)
+    def _load_safetensors_weights(self):
+        with safe_open(self.pretrained, framework='pt', device='cpu') as f:
+            checkpoint_state_dict = {k: torch.tensor(v) for k, v in f.items()}
+        missing_keys, unexpected_keys = self.load_state_dict(checkpoint_state_dict, strict=False)
+        if missing_keys:
+            print("TemporalViTEncoder | Warning: Missing keys in the state dict:", missing_keys)
+        if unexpected_keys:
+            print("TemporalViTEncoder | Warning: Unexpected keys in the state dict:", unexpected_keys)
+        print(f"TemporalViTEncoder | Loaded pretrained weights from '{self.pretrained}' (safetensors).")
+
+    def _load_pt_weights(self):
+        checkpoint = torch.load(self.pretrained, map_location='cpu')
+        checkpoint_state_dict = checkpoint.get('state_dict', checkpoint)
+        missing_keys, unexpected_keys = self.load_state_dict(checkpoint_state_dict, strict=False)
+        if missing_keys:
+            print("TemporalViTEncoder | Warning: Missing keys in the state dict:", missing_keys)
+        if unexpected_keys:
+            print("TemporalViTEncoder | Warning: Unexpected keys in the state dict:", unexpected_keys)
+        print(f"TemporalViTEncoder | Loaded pretrained weights from '{self.pretrained}' (pt file).")
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
