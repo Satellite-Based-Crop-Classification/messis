@@ -37,6 +37,8 @@ dvc remote modify gdrive --local gdrive_service_account_json_file_path .dvc/serv
 ```bash
 dvc pull
 ```
+
+
 ### MMCV Environment Setup (optional)
 
 Set up this environment to run Prithvi with the MMCV/MMSegmentation framework (see `prithvi` folder).
@@ -121,7 +123,13 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
     wandb login <API_KEY>
     ```
 
-11. Configure git user
+11. Log into Hugging Face
+
+    ```bash
+    huggingface-cli login
+    ```
+
+12. Configure git user
 
     ```bash
     git config --global user.name "Yvo Keller"
