@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10.12"
-huggingface-hub = "^0.22.2"
+huggingface-hub = "^0.23.0"
 torch = "^2.3.0"
 lightning = "^2.2.3"
 torchvision = "^0.18.0"
@@ -31,6 +31,9 @@ geopandas = "^0.14.4"
 torchmetrics = "^1.4.0"
 nbconvert = "^7.16.4"
 plotly = "^5.22.0"
+python-dotenv = "^1.0.1"
+safetensors = "^0.4.3"
+transformers = "^4.41.2"
 
 
 [tool.poetry.group.dev.dependencies]

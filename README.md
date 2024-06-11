@@ -135,7 +135,15 @@ Resources for optimizing the training:
 - https://lightning.ai/docs/pytorch/stable/accelerators/gpu_intermediate.html
 - PyTorch Lightning SLURM: https://lightning.ai/docs/pytorch/stable/clouds/cluster_advanced.html
 
+### Train on Server with GPU
+
+- Start Training Job: `sh server-messis-lightning.sh`
+
+### Train on SLURM
+
 Slurm Commands:
+- Start SLURM Training Job: `sbatch slurm-messis-lightning.sh`
+- Show SLURM Jobs: `squeue`
 - Show SLURM Cluster nodes with GPU Info: `scontrol show nodes`
 - Cancel SLURM Job: `scancel job_id`
 
