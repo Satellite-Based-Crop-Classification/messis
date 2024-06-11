@@ -65,7 +65,7 @@ class GeospatialDataset(Dataset):
         
         # Adjust file selection based on fold
         for file in os.listdir(self.chips_dir):
-            if re.match(f".*_fold_[{"".join([str(f) for f in fold_indicies])}]_merged.tif", file):
+            if re.match(f".*_fold_[{''.join([str(f) for f in fold_indicies])}]_merged.tif", file):
                 self.images.append(file)
                 mask_file = file.replace("_merged.tif", "_mask.tif")
                 self.masks.append(mask_file)
