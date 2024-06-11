@@ -46,6 +46,8 @@ stages:
     params:
     - chip_size
     - number_of_folds
+    - fold_split_mode
+    - distribution_transform_mode
     - timespans.number_of_timespans
     - timespans.start
     - timespans.end

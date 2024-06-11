@@ -111,12 +111,14 @@ stages:
       nfiles: 194
     - path: prepare_dataset.ipynb
       hash: md5
-      md5: 958e861593eceab398c0e31164360b1b
-      size: 5504282
+      md5: fea6fc3a8c64fdc6d12cfd5bdad3fa71
+      size: 5320857
     params:
       params.yaml:
         chip_size: 224
-        number_of_folds: 5
+        distribution_transform_mode: None
+        fold_split_mode: stratified
+        number_of_folds: 6
         paths.field_ids: data/field_ids.tif
         paths.labels: data/labels.tif
         paths.labels_hierarchy: data/labels_hierarchy.tif
@@ -127,9 +129,9 @@ stages:
     outs:
     - path: data/chips
       hash: md5
-      md5: 4e2f6f3de2b6d63b75fa37cfebbafe04.dir
-      size: 871612430
-      nfiles: 1209
+      md5: 12f579391711c94f83100e3feef38bc8.dir
+      size: 837007470
+      nfiles: 1161
     - path: data/stacked_features.tif
       hash: md5
       md5: afa429abbea631e0421db110b432776c
@@ -140,13 +142,13 @@ stages:
     deps:
     - path: calculate_dataset_stats.ipynb
       hash: md5
-      md5: cb93d5cd75321c91d53ff8653464e657
-      size: 5050
+      md5: 129e8d22b9c806cb4b855c05dac776ae
+      size: 4834
     - path: data/chips
       hash: md5
-      md5: 4e2f6f3de2b6d63b75fa37cfebbafe04.dir
-      size: 871612430
-      nfiles: 1209
+      md5: 12f579391711c94f83100e3feef38bc8.dir
+      size: 837007470
+      nfiles: 1161
     - path: data/labels_hierarchy.tif
       hash: md5
       md5: 65ebb2ac0667f3998f1f90e4fdbaddc7
@@ -154,15 +156,15 @@ stages:
     params:
       params.yaml:
         number_of_bands: 6
-        number_of_folds: 5
+        number_of_folds: 6
         paths.chips: data/chips
         paths.labels_hierarchy: data/labels_hierarchy.tif
         timespans.number_of_timespans: 3
     outs:
     - path: data/chips_stats.yaml
       hash: md5
-      md5: 9d59cbd8e22ad41048d5de8de644e270
-      size: 1786
+      md5: 70cae8f694077f9e2eea235b901b2ebc
+      size: 1969
   download-prithvi-base-model:
     cmd: papermill download_prithvi_100M.ipynb download_prithvi_100M.output.ipynb
       && rm download_prithvi_100M.output.ipynb
