@@ -1,6 +1,6 @@
 chip_size: 224
 number_of_folds: 6
-fold_split_mode: 'random' # either 'band', 'stratified', or 'random'
+fold_split_mode: 'sechidis' # either 'band', 'stratified', 'random', or 'sechidis'
 distribution_transform_mode: None # either None, 'sqrt' or 'log'
 search_dates: '2019-03-01T00:00:00.000Z/2019-10-01T00:00:00.000Z'
 max_cloud_cover: 5
