@@ -147,6 +147,22 @@ Resources for optimizing the training:
 
 - Start Training Job: `sh server-messis-lightning.sh`
 
+When you want to stop the job, you can kill the entire process group:
+
+1. **Find the process group ID (PGID)**:
+
+   ```sh
+   ps -o pgid,cmd -p $(pgrep -f 'server-messis-lightning.sh')
+   ```
+
+2. **Kill the process group**:
+
+   ```sh
+   kill -TERM -<PGID>
+   ```
+
+   Replace `<PGID>` with the actual process group ID you found.
+
 ### Train on SLURM
 
 Slurm Commands:
