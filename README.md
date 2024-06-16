@@ -145,7 +145,7 @@ Resources for optimizing the training:
 
 ### Train on Server with GPU
 
-- Start Training Job: `sh server-messis-lightning.sh`
+- Start Training Job: `nohup sh server-messis-lightning.sh`
 
 When you want to stop the job, you can kill the entire process group:
 
