@@ -5,7 +5,6 @@
 /ZH_2019_LW_NUTZUNGSFLAECHEN_F.shp
 /ZH_2019_LW_NUTZUNGSFLAECHEN_F.shx
 /labels_hierarchy.csv
-/labels_new_hierarchy.csv
 
 /satellite
 /chips
@@ -16,3 +15,4 @@
 /labels.tif
 /chips_stats.yaml
 /dataset_info.json
+/labels_hierarchy_seasonality.csv
