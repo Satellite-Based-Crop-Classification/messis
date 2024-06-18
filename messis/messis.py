@@ -647,7 +647,6 @@ class LogMessisMetrics(pl.Callback):
             print(f"{phase} batch ended. Updating metrics...")
 
         targets = torch.stack(batch[1][0]) # (tiers, batch, H, W)
-        print("Outputs shape: ", outputs['outputs'][self.final_head_name].shape)
         outputs = outputs['outputs'][self.final_head_name] # (batch, C, H, W)        
         field_ids = batch[1][1].permute(1, 0, 2, 3)[0]
 
