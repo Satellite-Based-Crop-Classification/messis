@@ -318,9 +318,9 @@ class Messis(pl.LightningModule, PyTorchModelHubMixin):
         targets = torch.stack(targets[0])
         outputs = self(inputs)
         loss, loss_per_head = self.model.calculate_loss(outputs, targets)
-        loss_per_head = {f'{stage}_loss_{head}': loss_per_head[head] for head in loss_per_head}
+        loss_per_head_named = {f'{stage}_loss_{head}': loss_per_head[head] for head in loss_per_head}
         loss_proportions = { f'{stage}_loss_{head}_proportion': round(loss_per_head[head].item() / loss.item(), 2) for head in loss_per_head}
-        loss_detail_dict = {**loss_per_head, **loss_proportions}
+        loss_detail_dict = {**loss_per_head_named, **loss_proportions}
 
         if self.hparams.get('debug'):
             print(f"Step Inputs shape: {safe_shape(inputs)}")
