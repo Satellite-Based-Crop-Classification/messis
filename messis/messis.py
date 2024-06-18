@@ -263,7 +263,7 @@ class HierarchicalClassifier(nn.Module):
                 print(f"Target index for {head_name}: {self.heads_spec[head_name]['target_idx']}")
             target = targets[self.heads_spec[head_name]['target_idx']]
             loss = self.loss_func(output, target)
-            loss_per_head[f'loss_{head_name}'] = loss
+            loss_per_head[f'{head_name}'] = loss
             total_loss += loss * self.loss_weights[head_name]
         
         return total_loss, loss_per_head
@@ -318,7 +318,8 @@ class Messis(pl.LightningModule, PyTorchModelHubMixin):
         targets = torch.stack(targets[0])
         outputs = self(inputs)
         loss, loss_per_head = self.model.calculate_loss(outputs, targets)
-        loss_proportions = { f'loss_{head}_proportion': round(loss_per_head[head].item() / loss.item(), 2) for head in loss_per_head}
+        loss_per_head = {f'{stage}_loss_{head}': loss_per_head[head] for head in loss_per_head}
+        loss_proportions = { f'{stage}_loss_{head}_proportion': round(loss_per_head[head].item() / loss.item(), 2) for head in loss_per_head}
         loss_detail_dict = {**loss_per_head, **loss_proportions}
 
         if self.hparams.get('debug'):
