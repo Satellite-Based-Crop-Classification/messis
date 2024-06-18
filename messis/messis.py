@@ -324,7 +324,7 @@ class Messis(pl.LightningModule, PyTorchModelHubMixin):
         if self.hparams.get('debug'):
             print(f"Step Inputs shape: {safe_shape(inputs)}")
             print(f"Step Targets shape: {safe_shape(targets)}")
-            print(f"Step Outputs shape: {safe_shape(outputs)}")
+            print(f"Step Outputs dict keys: {outputs.keys()}")
 
         # NOTE: All metrics other than loss are tracked by callbacks (LogMessisMetrics)
         self.log_dict({f'{stage}_loss': loss, **loss_detail_dict}, on_step=True, on_epoch=True, prog_bar=True, logger=True)
@@ -334,13 +334,22 @@ class LogConfusionMatrix(pl.Callback):
     def __init__(self, hparams, dataset_info_file, debug=False):
         super().__init__()
 
-        assert hparams.get('tiers') is not None, "Tiers must be defined in the hparams"
+        assert hparams.get('heads_spec') is not None, "heads_spec must be defined in the hparams"
+        self.tiers_dict = {k: v for k, v in hparams.get('heads_spec').items() if v.get('is_metrics_tier', False)}
+        self.last_tier_name = next((k for k, v in hparams.get('heads_spec').items() if v.get('is_last_tier', False)), None)
+        self.final_head_name = next((k for k, v in hparams.get('heads_spec').items() if v.get('is_final_head', False)), None)
 
-        self.tiers_dict = hparams.get('tiers')
-        self.tiers = ['tier1', 'tier2', 'tier3']
+        assert self.last_tier_name is not None, "No tier found with 'is_last_tier' set to True"
+        assert self.final_head_name is not None, "No head found with 'is_final_head' set to True"
+
+        self.tiers = list(self.tiers_dict.keys())
         self.phases = ['train', 'val', 'test']
         self.modes = ['pixelwise', 'majority']
         self.debug = debug
+
+        if debug:
+            print(f"Final head identified as: {self.final_head_name}")
+            print(f"LogConfusionMatrix Metrics over | Phases: {self.phases}, Tiers: {self.tiers}, Modes: {self.modes}")
         
         with open(dataset_info_file, 'r') as f:
             self.dataset_info = json.load(f)
@@ -350,7 +359,7 @@ class LogConfusionMatrix(pl.Callback):
         self.metrics = {phase: {tier: {mode: self.__init_metrics(tier, phase) for mode in self.modes} for tier in self.tiers} for phase in self.phases}
 
     def __init_metrics(self, tier, phase):
-        num_classes = self.tiers_dict[tier]['num_classes']
+        num_classes = self.tiers_dict[tier]['num_classes_to_predict']
         confusion_matrix = classification.MulticlassConfusionMatrix(num_classes=num_classes)
 
         return {
@@ -380,10 +389,10 @@ class LogConfusionMatrix(pl.Callback):
             return
 
         targets = torch.stack(batch[1][0]) # (tiers, batch, H, W)
-        outputs = outputs['outputs'][3] # (batch, C, H, W)
+        outputs = outputs['outputs'][self.final_head_name] # (batch, C, H, W)
         field_ids = batch[1][1].permute(1, 0, 2, 3)[0]
 
-        pixelwise_outputs, majority_outputs = LogConfusionMatrix.get_pixelwise_and_majority_outputs(outputs, field_ids, self.dataset_info)        
+        pixelwise_outputs, majority_outputs = LogConfusionMatrix.get_pixelwise_and_majority_outputs(outputs, self.tiers, field_ids, self.dataset_info)        
         
         for preds, mode in zip([pixelwise_outputs, majority_outputs], self.modes):
             # Update all metrics
@@ -402,17 +411,18 @@ class LogConfusionMatrix(pl.Callback):
 
 
     @staticmethod
-    def get_pixelwise_and_majority_outputs(outputs, field_ids, dataset_info):
+    def get_pixelwise_and_majority_outputs(refinement_head_outputs, tiers, field_ids, dataset_info):
         """
         Get the pixelwise and majority predictions from the model outputs.
-        The pixelwise tier 1 and 2 are derived from the tier3_refined predictions. 
-        The majority tier 3 is first derived from the tier3_refined predictions. And then the majority tier 1 and 2 are derived from the majority tier 3 predictions.
+        The pixelwise tier predictions are derived from the refinement_head_outputs predictions. 
+        The majority last tier predictions are derived from the refinement_head_outputs. And then the majority lower-tier predictions are derived from the majority highest-tier predictions.
 
         Also sets the background to 0 for all field majority predictions (regardless of what the model predicts for the background class).
         As this is a classification task and not a segmentation task and the field boundaries are known beforehand and not of any interest.
 
         Args:
-            outputs (torch.Tensor(batch, C, H, W)): The probability outputs from the model for tier3_refined.
+            refinement_head_outputs (torch.Tensor(batch, C, H, W)): The probability outputs from the model for the refined tier.
+            tiers (list of str): List of tiers e.g. ['tier1', 'tier2', 'tier3'].
             field_ids (torch.Tensor(batch, H, W)): The field IDs for each prediction.
             dataset_info (dict): The dataset information.
 
@@ -421,29 +431,37 @@ class LogConfusionMatrix(pl.Callback):
             torch.Tensor(tiers, batch, H, W): The majority predictions.
         """
         
-        pixelwise_tier3 = torch.softmax(outputs, dim=1).argmax(dim=1) # (batch, H, W)
-        majority_tier3 = LogConfusionMatrix.get_field_majority_preds(outputs, field_ids)
+        # Assuming the highest tier is the last one in the list
+        highest_tier = tiers[-1]
 
-        tier3_to_tier1, tier3_to_tier2 = dataset_info['tier3_to_tier1'], dataset_info['tier3_to_tier2']
+        pixelwise_highest_tier = torch.softmax(refinement_head_outputs, dim=1).argmax(dim=1)  # (batch, H, W)
+        majority_highest_tier = LogConfusionMatrix.get_field_majority_preds(refinement_head_outputs, field_ids)
 
-        pixelwise_tier1, pixelwise_tier2 = torch.zeros_like(pixelwise_tier3), torch.zeros_like(pixelwise_tier3)
-        majority_tier1, majority_tier2 = torch.zeros_like(majority_tier3), torch.zeros_like(majority_tier3)
+        tier_mapping = {tier: dataset_info[f'{highest_tier}_to_{tier}'] for tier in tiers if tier != highest_tier}
 
-        # map tier 3 to tier 2 and tier 1
-        for i, (class_index_tier1, class_index_tier2) in enumerate(zip(tier3_to_tier1, tier3_to_tier2)):
-            pixelwise_tier1[pixelwise_tier3 == i] = class_index_tier1
-            pixelwise_tier2[pixelwise_tier3 == i] = class_index_tier2
-            majority_tier1[majority_tier3 == i] = class_index_tier1
-            majority_tier2[majority_tier3 == i] = class_index_tier2
-        
-        pixelwise_outputs = torch.stack((pixelwise_tier1, pixelwise_tier2, pixelwise_tier3))
-        majority_outputs = torch.stack((majority_tier1, majority_tier2, majority_tier3))
+        pixelwise_outputs = {highest_tier: pixelwise_highest_tier}
+        majority_outputs = {highest_tier: majority_highest_tier}
+
+        # Initialize pixelwise and majority outputs for each tier
+        for tier in tiers:
+            if tier != highest_tier:
+                pixelwise_outputs[tier] = torch.zeros_like(pixelwise_highest_tier)
+                majority_outputs[tier] = torch.zeros_like(majority_highest_tier)
+
+        # Map the highest tier to lower tiers
+        for i, mappings in enumerate(zip(*tier_mapping.values())):
+            for j, tier in enumerate(tier_mapping.keys()):
+                pixelwise_outputs[tier][pixelwise_highest_tier == i] = mappings[j]
+                majority_outputs[tier][majority_highest_tier == i] = mappings[j]
+
+        pixelwise_outputs_stacked = torch.stack([pixelwise_outputs[tier] for tier in tiers])
+        majority_outputs_stacked = torch.stack([majority_outputs[tier] for tier in tiers])
 
         # Ensure these are tensors
-        assert isinstance(pixelwise_outputs, torch.Tensor), "pixelwise_outputs is not a tensor"
-        assert isinstance(majority_outputs, torch.Tensor), "majority_outputs is not a tensor"
+        assert isinstance(pixelwise_outputs_stacked, torch.Tensor), "pixelwise_outputs_stacked is not a tensor"
+        assert isinstance(majority_outputs_stacked, torch.Tensor), "majority_outputs_stacked is not a tensor"
 
-        return pixelwise_outputs, majority_outputs
+        return pixelwise_outputs_stacked, majority_outputs_stacked
 
 
     @staticmethod
@@ -520,12 +538,12 @@ class LogConfusionMatrix(pl.Callback):
                 ax.xaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(1)+1)))
                 ax.yaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(0)+1)))
 
-                clean_tier = tier.split('_')[0] if '_refined' in tier else tier
-                ax.set_xticklabels(self.dataset_info[clean_tier] + [''], rotation=45)
-                ax.set_yticklabels(self.dataset_info[clean_tier] + [''])
+                class_labels = self.dataset_info[tier]
+                ax.set_xticklabels(class_labels + [''], rotation=45)
+                ax.set_yticklabels(class_labels + [''])
 
                 # Add total number of instances to the y-axis labels
-                y_labels = [f'{self.dataset_info[clean_tier][i]} [n={int(row_sums[i].item()):,.0f}]'.replace(',', "'") for i in range(matrix.size(0))]
+                y_labels = [f'{class_labels[i]} [n={int(row_sums[i].item()):,.0f}]'.replace(',', "'") for i in range(matrix.size(0))]
                 ax.set_yticklabels(y_labels + [''])
 
                 ax.set_xlabel('Predictions')
@@ -551,16 +569,23 @@ class LogMessisMetrics(pl.Callback):
     def __init__(self, hparams, dataset_info_file, debug=False):
         super().__init__()
 
-        assert hparams.get('tiers') is not None, "Tiers must be defined in the hparams"
+        assert hparams.get('heads_spec') is not None, "heads_spec must be defined in the hparams"
+        self.tiers_dict = {k: v for k, v in hparams.get('heads_spec').items() if v.get('is_metrics_tier', False)}
+        self.last_tier_name = next((k for k, v in hparams.get('heads_spec').items() if v.get('is_last_tier', False)), None)
+        self.final_head_name = next((k for k, v in hparams.get('heads_spec').items() if v.get('is_final_head', False)), None)
 
-        self.tiers_dict = hparams.get('tiers')
-        self.tiers = ['tier1', 'tier2', 'tier3']
+        assert self.last_tier_name is not None, "No tier found with 'is_last_tier' set to True"
+        assert self.final_head_name is not None, "No head found with 'is_final_head' set to True"
+
+        self.tiers = list(self.tiers_dict.keys())
         self.phases = ['train', 'val', 'test']
         self.modes = ['pixelwise', 'majority']
         self.debug = debug
 
         if debug:
-            print(f"Phases: {self.phases}, Tiers: {self.tiers}, Modes: {self.modes}")
+            print(f"Last tier identified as: {self.last_tier_name}")
+            print(f"Final head identified as: {self.final_head_name}")
+            print(f"LogMessisMetrics Metrics over | Phases: {self.phases}, Tiers: {self.tiers}, Modes: {self.modes}")
 
         with open(dataset_info_file, 'r') as f:
             self.dataset_info = json.load(f)
@@ -574,7 +599,7 @@ class LogMessisMetrics(pl.Callback):
         self.inputs_to_log = {phase: None for phase in self.phases}
 
     def __init_metrics(self, tier, phase):
-        num_classes = self.tiers_dict[tier]['num_classes']
+        num_classes = self.tiers_dict[tier]['num_classes_to_predict']
 
         accuracy = classification.MulticlassAccuracy(num_classes=num_classes, average='macro')
         per_class_accuracies = {
@@ -621,10 +646,11 @@ class LogMessisMetrics(pl.Callback):
             print(f"{phase} batch ended. Updating metrics...")
 
         targets = torch.stack(batch[1][0]) # (tiers, batch, H, W)
-        outputs = outputs['outputs'][-1] # (batch, H, W)        
+        print("Outputs shape: ", outputs['outputs'][self.final_head_name].shape)
+        outputs = outputs['outputs'][self.final_head_name] # (batch, C, H, W)        
         field_ids = batch[1][1].permute(1, 0, 2, 3)[0]
 
-        pixelwise_outputs, majority_outputs = LogConfusionMatrix.get_pixelwise_and_majority_outputs(outputs, field_ids, self.dataset_info)        
+        pixelwise_outputs, majority_outputs = LogConfusionMatrix.get_pixelwise_and_majority_outputs(outputs, self.tiers, field_ids, self.dataset_info)        
 
         for preds, mode in zip([pixelwise_outputs, majority_outputs], self.modes):
 
@@ -716,7 +742,7 @@ class LogMessisMetrics(pl.Callback):
         pixel_wise_masks = self.images_to_log[phase]["pixelwise"].cpu().numpy()
         field_majority_masks = self.images_to_log[phase]["majority"].cpu().numpy()
         correctness_masks = self.create_positive_negative_segmentation_mask(field_majority_masks, ground_truth_masks)
-        class_labels = {idx: name for idx, name in enumerate(self.dataset_info["tier3"])}
+        class_labels = {idx: name for idx, name in enumerate(self.dataset_info[self.last_tier_name])}
 
         segmentation_masks = []
         for input_data, ground_truth_mask, pixel_wise_mask, field_majority_mask, correctness_mask in zip(batch_input_data, ground_truth_masks, pixel_wise_masks, field_majority_masks, correctness_masks):
