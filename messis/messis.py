@@ -130,29 +130,25 @@ class LabelRefinementHead(nn.Module):
 class HierarchicalClassifier(nn.Module):
     def __init__(
             self, 
-            num_classes_tier1, 
-            num_classes_tier2, 
-            num_classes_tier3, 
+            heads_spec,
+            dropout_p=0.1,
             img_size=256, 
             patch_size=16, 
             num_frames=3, 
             bands=[0, 1, 2, 3, 4, 5], 
-            weight_tier1=1.0, 
-            weight_tier2=1.0, 
-            weight_tier3=1.0, 
-            weight_tier3_refined=1.0, 
             backbone_weights_path=None, 
             freeze_backbone=True, 
             debug=False
         ):
         super(HierarchicalClassifier, self).__init__()
 
-        self.embed_dim=768
-        self.num_frames=num_frames
+        self.embed_dim = 768
+        self.num_frames = num_frames
         self.output_embed_dim = self.embed_dim * self.num_frames
         self.hp, self.wp = img_size // patch_size, img_size // patch_size
         self.head_channels = 256 # TODO: We should research what makes sense here (same channels, gradual decrease from 1024, ...)
-        self.total_classes = num_classes_tier1 + num_classes_tier2 + num_classes_tier3
+        self.heads_spec = heads_spec
+        self.dropout_p = dropout_p
         self.debug = debug
 
         if self.debug:
@@ -173,11 +169,11 @@ class HierarchicalClassifier(nn.Module):
             debug=self.debug
         )
 
-        # (Un)freeze the backbone
+        # (Un)freeze the backbone
         for param in self.prithvi.parameters():
             param.requires_grad = not freeze_backbone
 
-        # Neck to transform the token-based output of the transformer into a spatial feature map
+        # Neck to transform the token-based output of the transformer into a spatial feature map
         self.neck = ConvTransformerTokensToEmbeddingNeck(
             embed_dim=self.embed_dim * self.num_frames,
             output_embed_dim=self.output_embed_dim,
@@ -186,38 +182,40 @@ class HierarchicalClassifier(nn.Module):
             Wp=self.wp,
         )
 
-        # Loss weights for the different tiers
-        self.weight_tier1 = weight_tier1
-        self.weight_tier2 = weight_tier2
-        self.weight_tier3 = weight_tier3
-        self.weight_tier3_refined = weight_tier3_refined
+        # Initialize heads and loss weights based on tiers
+        self.heads = nn.ModuleDict()
+        self.loss_weights = {}
+        self.total_classes = 0
 
-        # Hierarchical heads to predict tier 1, tier 2 and tier 3 classes
-        self.head_tier1 = HierarchicalFCNHead(
-            in_channels=self.output_embed_dim,
-            out_channels=self.head_channels,
-            num_classes=num_classes_tier1,
-            num_convs=1,
-            dropout_p=0.1,
-            debug=self.debug
-        )
-        self.head_tier2 = HierarchicalFCNHead(
-            in_channels=self.head_channels, # Match output from head_tier1
-            out_channels=self.head_channels,
-            num_classes=num_classes_tier2,
-            num_convs=1,
-            dropout_p=0.1,
-            debug=self.debug
-        )
-        self.head_tier3 = HierarchicalFCNHead(
-            in_channels=self.head_channels, # Match output from head_tier2
-            out_channels=self.head_channels,
-            num_classes=num_classes_tier3,
-            num_convs=1,
-            dropout_p=0.1,
-            debug=self.debug
-        )
-        self.refinement_head_tier3 = LabelRefinementHead(input_channels=self.total_classes, num_classes=num_classes_tier3)
+        # Build HierarchicalFCNHeads
+        head_count = 0
+        for head_name, head_info in self.heads_spec.items():
+            head_type = head_info['type']
+            num_classes = head_info['num_classes_to_predict']
+            loss_weight = head_info['loss_weight']
+
+            if head_type == 'HierarchicalFCNHead':
+                num_classes = head_info['num_classes_to_predict']
+                loss_weight = head_info['loss_weight']
+                self.total_classes += num_classes
+
+                self.heads[head_name] = HierarchicalFCNHead(
+                    in_channels=self.output_embed_dim if head_count == 0 else self.head_channels,
+                    out_channels=self.head_channels,
+                    num_classes=num_classes,
+                    num_convs=1,
+                    dropout_p=self.dropout_p,
+                    debug=self.debug
+                )
+                self.loss_weights[head_name] = loss_weight
+
+            # NOTE: LabelRefinementHead must be the last in the dict, otherwise the total_classes will be incorrect
+            if head_type == 'LabelRefinementHead':
+                self.refinement_head = LabelRefinementHead(input_channels=self.total_classes, num_classes=num_classes)
+                self.refinement_head_name = head_name
+                self.loss_weights[head_name] = loss_weight
+
+            head_count += 1
 
         self.loss_func = nn.CrossEntropyLoss()
 
@@ -234,66 +232,53 @@ class HierarchicalClassifier(nn.Module):
         if self.debug:
             print(f"Features shape after neck: {safe_shape(features)}")
 
-        # Remove from tuple
+        # Remove from tuple
         features = features[0]
         if self.debug:
             print(f"Features shape after removing tuple: {safe_shape(features)}")
 
-        # Process through the first tier
-        output_tier1, features = self.head_tier1(features)
+        # Process through the heads
+        outputs = {}
+        for tier_name, head in self.heads.items():
+            output, features = head(features)
+            outputs[tier_name] = output
 
-        if self.debug:    
-            print(f"Features shape after tier 1 head: {safe_shape(features)}")
-            print(f"Output shape after tier 1 head: {safe_shape(output_tier1)}")
-
-        # Process through the second tier
-        output_tier2, features = self.head_tier2(features)
-
-        if self.debug:
-            print(f"Features shape after tier 2 head: {safe_shape(features)}")
-            print(f"Output shape after tier 2 head: {safe_shape(output_tier2)}")
-
-        # Process through the third tier
-        output_tier3, features = self.head_tier3(features)
-
-        if self.debug:
-            print(f"Features shape after tier 3 head: {safe_shape(features)}")
-            print(f"Output shape after tier 3 head: {safe_shape(output_tier3)}")
+            if self.debug:
+                print(f"Features shape after {tier_name} head: {safe_shape(features)}")
+                print(f"Output shape after {tier_name} head: {safe_shape(output)}")
 
         # Process through the classification refinement head
-        output_concatenated = torch.cat([output_tier1, output_tier2, output_tier3], dim=1)
-        output_tier3_refined = self.refinement_head_tier3(output_concatenated)
+        output_concatenated = torch.cat(list(outputs.values()), dim=1)
+        output_refinement_head = self.refinement_head(output_concatenated)
+        outputs[self.refinement_head_name] = output_refinement_head
 
-        return (output_tier1, output_tier2, output_tier3, output_tier3_refined)
-    
+        return outputs
+
     def calculate_loss(self, outputs, targets):
-        output_tier1, output_tier2, output_tier3, output_tier3_refined = outputs
-        target_tier1, target_tier2, target_tier3 = targets
+        total_loss = 0
+        loss_per_head = {}
+        for head_name, output in outputs.items():
+            if self.debug:
+                print(f"Target index for {head_name}: {self.heads_spec[head_name]['target_idx']}")
+            target = targets[self.heads_spec[head_name]['target_idx']]
+            loss = self.loss_func(output, target)
+            loss_per_head[f'loss_{head_name}'] = loss
+            total_loss += loss * self.loss_weights[head_name]
+        
+        return total_loss, loss_per_head
 
-        loss_tier1 = self.loss_func(output_tier1, target_tier1)
-        loss_tier2 = self.loss_func(output_tier2, target_tier2)
-        loss_tier3 = self.loss_func(output_tier3, target_tier3)
-        loss_tier3_refined = self.loss_func(output_tier3_refined, target_tier3)
-
-        return loss_tier1 * self.weight_tier1 + loss_tier2 * self.weight_tier2 + loss_tier3 * self.weight_tier3 + loss_tier3_refined * self.weight_tier3_refined
- 
 class Messis(pl.LightningModule, PyTorchModelHubMixin):
     def __init__(self, hparams):
         super().__init__()
         self.save_hyperparameters(hparams)
 
         self.model = HierarchicalClassifier(
-            num_classes_tier1=hparams['tiers']['tier1']['num_classes'],
-            num_classes_tier2=hparams['tiers']['tier2']['num_classes'],
-            num_classes_tier3=hparams['tiers']['tier3']['num_classes'],
+            heads_spec=hparams['heads_spec'],
+            dropout_p=hparams.get('dropout_p'),
             img_size=hparams.get('img_size'),
             patch_size=hparams.get('patch_size'),
             num_frames=hparams.get('num_frames'),
             bands=hparams.get('bands'),
-            weight_tier1=hparams['tiers']['tier1']['loss_weight'],
-            weight_tier2=hparams['tiers']['tier2']['loss_weight'],
-            weight_tier3=hparams['tiers']['tier3']['loss_weight'],
-            weight_tier3_refined=hparams['tiers']['tier3_refined']['loss_weight'],
             backbone_weights_path=hparams.get('backbone_weights_path'),
             freeze_backbone=hparams['freeze_backbone'],
             debug=hparams.get('debug')
@@ -319,7 +304,9 @@ class Messis(pl.LightningModule, PyTorchModelHubMixin):
         inputs, targets = batch
         targets = torch.stack(targets[0])
         outputs = self(inputs)
-        loss = self.model.calculate_loss(outputs, targets)
+        loss, loss_per_head = self.model.calculate_loss(outputs, targets)
+        loss_proportions = { f'loss_{head}_proportion': round(loss_per_head[head].item() / loss.item(), 2) for head in loss_per_head}
+        loss_detail_dict = {**loss_per_head, **loss_proportions}
 
         if self.hparams.get('debug'):
             print(f"Step Inputs shape: {safe_shape(inputs)}")
@@ -327,7 +314,7 @@ class Messis(pl.LightningModule, PyTorchModelHubMixin):
             print(f"Step Outputs shape: {safe_shape(outputs)}")
 
         # NOTE: All metrics other than loss are tracked by callbacks (LogMessisMetrics)
-        self.log(f'{stage}_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log_dict({f'{stage}_loss': loss, **loss_detail_dict}, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {'loss': loss, 'outputs': outputs}
         
 class LogConfusionMatrix(pl.Callback):
