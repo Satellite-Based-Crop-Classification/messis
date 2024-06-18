@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.ticker as ticker
 from matplotlib.colors import ListedColormap
 from huggingface_hub import PyTorchModelHubMixin
+from lion_pytorch import Lion
 
 import json
 
@@ -297,7 +298,19 @@ class Messis(pl.LightningModule, PyTorchModelHubMixin):
         return self.__step(batch, batch_idx, "test")
         
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.get('lr', 1e-3))
+        # select case on optimizer
+        match self.hparams.get('optimizer', 'Adam'):
+            case 'Adam':
+                optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.get('lr', 1e-3))
+            case 'AdamW':
+                optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.get('lr', 1e-3), weight_decay=self.hparams.get('optimizer_weight_decay', 0.01))
+            case 'SGD':
+                optimizer = torch.optim.SGD(self.parameters(), lr=self.hparams.get('lr', 1e-3), momentum=self.hparams.get('optimizer_momentum', 0.9))
+            case 'Lion':
+                # https://github.com/lucidrains/lion-pytorch | Typically lr 3-10 times lower than Adam and weight_decay 3-10 times higher
+                optimizer = Lion(self.parameters(), lr=self.hparams.get('lr', 1e-3))
+            case _:
+                raise ValueError(f"Optimizer {self.hparams.get('optimizer')} not supported")
         return optimizer
 
     def __step(self, batch, batch_idx, stage):
