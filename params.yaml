@@ -2,7 +2,7 @@ chip_size: 224
 number_of_folds: 6
 fold_split_mode: 'stratified' # either 'band', 'stratified', 'random', or 'sechidis'
 distribution_transform_mode: None # either None, 'sqrt' or 'log'
-search_dates: '2019-03-01T00:00:00.000Z/2019-10-01T00:00:00.000Z'
+search_dates: '2019-04-01T00:00:00.000Z/2019-09-01T00:00:00.000Z'
 max_cloud_cover: 5
 zueri_crop:
   bbox: [8.364, 47.240, 9.0405, 47.69894] # new bbox is 5120x5120 pixels to accomodate for a nicer chip size of 20x20 256x256-chips; Old Bounding Box was [8.364, 47.240, 9.000, 47.697]
