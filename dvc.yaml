@@ -22,9 +22,11 @@ stages:
     - data/georef-switzerland-kanton@public.geojson
     - data/satellite
     - data/labels_hierarchy.csv
+    - data/labels_hierarchy_seasonality.csv
     params:
     - zueri_crop.bbox
     - max_cloud_cover
+    - label_hierarchy_definition
     - paths.satellite
     - paths.labels
     - paths.labels_hierarchy

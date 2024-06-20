@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.ticker as ticker
 from matplotlib.colors import ListedColormap
 from huggingface_hub import PyTorchModelHubMixin
+from lion_pytorch import Lion
 
 import json
 
@@ -130,29 +131,25 @@ class LabelRefinementHead(nn.Module):
 class HierarchicalClassifier(nn.Module):
     def __init__(
             self, 
-            num_classes_tier1, 
-            num_classes_tier2, 
-            num_classes_tier3, 
+            heads_spec,
+            dropout_p=0.1,
             img_size=256, 
             patch_size=16, 
             num_frames=3, 
             bands=[0, 1, 2, 3, 4, 5], 
-            weight_tier1=1.0, 
-            weight_tier2=1.0, 
-            weight_tier3=1.0, 
-            weight_tier3_refined=1.0, 
             backbone_weights_path=None, 
             freeze_backbone=True, 
             debug=False
         ):
         super(HierarchicalClassifier, self).__init__()
 
-        self.embed_dim=768
-        self.num_frames=num_frames
+        self.embed_dim = 768
+        self.num_frames = num_frames
         self.output_embed_dim = self.embed_dim * self.num_frames
         self.hp, self.wp = img_size // patch_size, img_size // patch_size
         self.head_channels = 256 # TODO: We should research what makes sense here (same channels, gradual decrease from 1024, ...)
-        self.total_classes = num_classes_tier1 + num_classes_tier2 + num_classes_tier3
+        self.heads_spec = heads_spec
+        self.dropout_p = dropout_p
         self.debug = debug
 
         if self.debug:
@@ -173,11 +170,11 @@ class HierarchicalClassifier(nn.Module):
             debug=self.debug
         )
 
-        # (Un)freeze the backbone
+        # (Un)freeze the backbone
         for param in self.prithvi.parameters():
             param.requires_grad = not freeze_backbone
 
-        # Neck to transform the token-based output of the transformer into a spatial feature map
+        # Neck to transform the token-based output of the transformer into a spatial feature map
         self.neck = ConvTransformerTokensToEmbeddingNeck(
             embed_dim=self.embed_dim * self.num_frames,
             output_embed_dim=self.output_embed_dim,
@@ -186,38 +183,40 @@ class HierarchicalClassifier(nn.Module):
             Wp=self.wp,
         )
 
-        # Loss weights for the different tiers
-        self.weight_tier1 = weight_tier1
-        self.weight_tier2 = weight_tier2
-        self.weight_tier3 = weight_tier3
-        self.weight_tier3_refined = weight_tier3_refined
+        # Initialize heads and loss weights based on tiers
+        self.heads = nn.ModuleDict()
+        self.loss_weights = {}
+        self.total_classes = 0
 
-        # Hierarchical heads to predict tier 1, tier 2 and tier 3 classes
-        self.head_tier1 = HierarchicalFCNHead(
-            in_channels=self.output_embed_dim,
-            out_channels=self.head_channels,
-            num_classes=num_classes_tier1,
-            num_convs=1,
-            dropout_p=0.1,
-            debug=self.debug
-        )
-        self.head_tier2 = HierarchicalFCNHead(
-            in_channels=self.head_channels, # Match output from head_tier1
-            out_channels=self.head_channels,
-            num_classes=num_classes_tier2,
-            num_convs=1,
-            dropout_p=0.1,
-            debug=self.debug
-        )
-        self.head_tier3 = HierarchicalFCNHead(
-            in_channels=self.head_channels, # Match output from head_tier2
-            out_channels=self.head_channels,
-            num_classes=num_classes_tier3,
-            num_convs=1,
-            dropout_p=0.1,
-            debug=self.debug
-        )
-        self.refinement_head_tier3 = LabelRefinementHead(input_channels=self.total_classes, num_classes=num_classes_tier3)
+        # Build HierarchicalFCNHeads
+        head_count = 0
+        for head_name, head_info in self.heads_spec.items():
+            head_type = head_info['type']
+            num_classes = head_info['num_classes_to_predict']
+            loss_weight = head_info['loss_weight']
+
+            if head_type == 'HierarchicalFCNHead':
+                num_classes = head_info['num_classes_to_predict']
+                loss_weight = head_info['loss_weight']
+                self.total_classes += num_classes
+
+                self.heads[head_name] = HierarchicalFCNHead(
+                    in_channels=self.output_embed_dim if head_count == 0 else self.head_channels,
+                    out_channels=self.head_channels,
+                    num_classes=num_classes,
+                    num_convs=1,
+                    dropout_p=self.dropout_p,
+                    debug=self.debug
+                )
+                self.loss_weights[head_name] = loss_weight
+
+            # NOTE: LabelRefinementHead must be the last in the dict, otherwise the total_classes will be incorrect
+            if head_type == 'LabelRefinementHead':
+                self.refinement_head = LabelRefinementHead(input_channels=self.total_classes, num_classes=num_classes)
+                self.refinement_head_name = head_name
+                self.loss_weights[head_name] = loss_weight
+
+            head_count += 1
 
         self.loss_func = nn.CrossEntropyLoss()
 
@@ -234,66 +233,53 @@ class HierarchicalClassifier(nn.Module):
         if self.debug:
             print(f"Features shape after neck: {safe_shape(features)}")
 
-        # Remove from tuple
+        # Remove from tuple
         features = features[0]
         if self.debug:
             print(f"Features shape after removing tuple: {safe_shape(features)}")
 
-        # Process through the first tier
-        output_tier1, features = self.head_tier1(features)
+        # Process through the heads
+        outputs = {}
+        for tier_name, head in self.heads.items():
+            output, features = head(features)
+            outputs[tier_name] = output
 
-        if self.debug:    
-            print(f"Features shape after tier 1 head: {safe_shape(features)}")
-            print(f"Output shape after tier 1 head: {safe_shape(output_tier1)}")
-
-        # Process through the second tier
-        output_tier2, features = self.head_tier2(features)
-
-        if self.debug:
-            print(f"Features shape after tier 2 head: {safe_shape(features)}")
-            print(f"Output shape after tier 2 head: {safe_shape(output_tier2)}")
-
-        # Process through the third tier
-        output_tier3, features = self.head_tier3(features)
-
-        if self.debug:
-            print(f"Features shape after tier 3 head: {safe_shape(features)}")
-            print(f"Output shape after tier 3 head: {safe_shape(output_tier3)}")
+            if self.debug:
+                print(f"Features shape after {tier_name} head: {safe_shape(features)}")
+                print(f"Output shape after {tier_name} head: {safe_shape(output)}")
 
         # Process through the classification refinement head
-        output_concatenated = torch.cat([output_tier1, output_tier2, output_tier3], dim=1)
-        output_tier3_refined = self.refinement_head_tier3(output_concatenated)
+        output_concatenated = torch.cat(list(outputs.values()), dim=1)
+        output_refinement_head = self.refinement_head(output_concatenated)
+        outputs[self.refinement_head_name] = output_refinement_head
 
-        return (output_tier1, output_tier2, output_tier3, output_tier3_refined)
-    
+        return outputs
+
     def calculate_loss(self, outputs, targets):
-        output_tier1, output_tier2, output_tier3, output_tier3_refined = outputs
-        target_tier1, target_tier2, target_tier3 = targets
+        total_loss = 0
+        loss_per_head = {}
+        for head_name, output in outputs.items():
+            if self.debug:
+                print(f"Target index for {head_name}: {self.heads_spec[head_name]['target_idx']}")
+            target = targets[self.heads_spec[head_name]['target_idx']]
+            loss = self.loss_func(output, target)
+            loss_per_head[f'{head_name}'] = loss
+            total_loss += loss * self.loss_weights[head_name]
+        
+        return total_loss, loss_per_head
 
-        loss_tier1 = self.loss_func(output_tier1, target_tier1)
-        loss_tier2 = self.loss_func(output_tier2, target_tier2)
-        loss_tier3 = self.loss_func(output_tier3, target_tier3)
-        loss_tier3_refined = self.loss_func(output_tier3_refined, target_tier3)
-
-        return loss_tier1 * self.weight_tier1 + loss_tier2 * self.weight_tier2 + loss_tier3 * self.weight_tier3 + loss_tier3_refined * self.weight_tier3_refined
- 
 class Messis(pl.LightningModule, PyTorchModelHubMixin):
     def __init__(self, hparams):
         super().__init__()
         self.save_hyperparameters(hparams)
 
         self.model = HierarchicalClassifier(
-            num_classes_tier1=hparams['tiers']['tier1']['num_classes'],
-            num_classes_tier2=hparams['tiers']['tier2']['num_classes'],
-            num_classes_tier3=hparams['tiers']['tier3']['num_classes'],
+            heads_spec=hparams['heads_spec'],
+            dropout_p=hparams.get('dropout_p'),
             img_size=hparams.get('img_size'),
             patch_size=hparams.get('patch_size'),
             num_frames=hparams.get('num_frames'),
             bands=hparams.get('bands'),
-            weight_tier1=hparams['tiers']['tier1']['loss_weight'],
-            weight_tier2=hparams['tiers']['tier2']['loss_weight'],
-            weight_tier3=hparams['tiers']['tier3']['loss_weight'],
-            weight_tier3_refined=hparams['tiers']['tier3_refined']['loss_weight'],
             backbone_weights_path=hparams.get('backbone_weights_path'),
             freeze_backbone=hparams['freeze_backbone'],
             debug=hparams.get('debug')
@@ -312,35 +298,59 @@ class Messis(pl.LightningModule, PyTorchModelHubMixin):
         return self.__step(batch, batch_idx, "test")
         
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.get('lr', 1e-3))
+        # select case on optimizer
+        match self.hparams.get('optimizer', 'Adam'):
+            case 'Adam':
+                optimizer = torch.optim.Adam(self.parameters(), lr=self.hparams.get('lr', 1e-3))
+            case 'AdamW':
+                optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.get('lr', 1e-3), weight_decay=self.hparams.get('optimizer_weight_decay', 0.01))
+            case 'SGD':
+                optimizer = torch.optim.SGD(self.parameters(), lr=self.hparams.get('lr', 1e-3), momentum=self.hparams.get('optimizer_momentum', 0.9))
+            case 'Lion':
+                # https://github.com/lucidrains/lion-pytorch | Typically lr 3-10 times lower than Adam and weight_decay 3-10 times higher
+                optimizer = Lion(self.parameters(), lr=self.hparams.get('lr', 1e-3))
+            case _:
+                raise ValueError(f"Optimizer {self.hparams.get('optimizer')} not supported")
         return optimizer
 
     def __step(self, batch, batch_idx, stage):
         inputs, targets = batch
         targets = torch.stack(targets[0])
         outputs = self(inputs)
-        loss = self.model.calculate_loss(outputs, targets)
+        loss, loss_per_head = self.model.calculate_loss(outputs, targets)
+        loss_per_head_named = {f'{stage}_loss_{head}': loss_per_head[head] for head in loss_per_head}
+        loss_proportions = { f'{stage}_loss_{head}_proportion': round(loss_per_head[head].item() / loss.item(), 2) for head in loss_per_head}
+        loss_detail_dict = {**loss_per_head_named, **loss_proportions}
 
         if self.hparams.get('debug'):
             print(f"Step Inputs shape: {safe_shape(inputs)}")
             print(f"Step Targets shape: {safe_shape(targets)}")
-            print(f"Step Outputs shape: {safe_shape(outputs)}")
+            print(f"Step Outputs dict keys: {outputs.keys()}")
 
         # NOTE: All metrics other than loss are tracked by callbacks (LogMessisMetrics)
-        self.log(f'{stage}_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log_dict({f'{stage}_loss': loss, **loss_detail_dict}, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return {'loss': loss, 'outputs': outputs}
         
 class LogConfusionMatrix(pl.Callback):
     def __init__(self, hparams, dataset_info_file, debug=False):
         super().__init__()
 
-        assert hparams.get('tiers') is not None, "Tiers must be defined in the hparams"
+        assert hparams.get('heads_spec') is not None, "heads_spec must be defined in the hparams"
+        self.tiers_dict = {k: v for k, v in hparams.get('heads_spec').items() if v.get('is_metrics_tier', False)}
+        self.last_tier_name = next((k for k, v in hparams.get('heads_spec').items() if v.get('is_last_tier', False)), None)
+        self.final_head_name = next((k for k, v in hparams.get('heads_spec').items() if v.get('is_final_head', False)), None)
 
-        self.tiers_dict = hparams.get('tiers')
-        self.tiers = ['tier1', 'tier2', 'tier3']
+        assert self.last_tier_name is not None, "No tier found with 'is_last_tier' set to True"
+        assert self.final_head_name is not None, "No head found with 'is_final_head' set to True"
+
+        self.tiers = list(self.tiers_dict.keys())
         self.phases = ['train', 'val', 'test']
         self.modes = ['pixelwise', 'majority']
         self.debug = debug
+
+        if debug:
+            print(f"Final head identified as: {self.final_head_name}")
+            print(f"LogConfusionMatrix Metrics over | Phases: {self.phases}, Tiers: {self.tiers}, Modes: {self.modes}")
         
         with open(dataset_info_file, 'r') as f:
             self.dataset_info = json.load(f)
@@ -350,7 +360,7 @@ class LogConfusionMatrix(pl.Callback):
         self.metrics = {phase: {tier: {mode: self.__init_metrics(tier, phase) for mode in self.modes} for tier in self.tiers} for phase in self.phases}
 
     def __init_metrics(self, tier, phase):
-        num_classes = self.tiers_dict[tier]['num_classes']
+        num_classes = self.tiers_dict[tier]['num_classes_to_predict']
         confusion_matrix = classification.MulticlassConfusionMatrix(num_classes=num_classes)
 
         return {
@@ -380,10 +390,10 @@ class LogConfusionMatrix(pl.Callback):
             return
 
         targets = torch.stack(batch[1][0]) # (tiers, batch, H, W)
-        outputs = outputs['outputs'][3] # (batch, C, H, W)
+        outputs = outputs['outputs'][self.final_head_name] # (batch, C, H, W)
         field_ids = batch[1][1].permute(1, 0, 2, 3)[0]
 
-        pixelwise_outputs, majority_outputs = LogConfusionMatrix.get_pixelwise_and_majority_outputs(outputs, field_ids, self.dataset_info)        
+        pixelwise_outputs, majority_outputs = LogConfusionMatrix.get_pixelwise_and_majority_outputs(outputs, self.tiers, field_ids, self.dataset_info)        
         
         for preds, mode in zip([pixelwise_outputs, majority_outputs], self.modes):
             # Update all metrics
@@ -402,17 +412,18 @@ class LogConfusionMatrix(pl.Callback):
 
 
     @staticmethod
-    def get_pixelwise_and_majority_outputs(outputs, field_ids, dataset_info):
+    def get_pixelwise_and_majority_outputs(refinement_head_outputs, tiers, field_ids, dataset_info):
         """
         Get the pixelwise and majority predictions from the model outputs.
-        The pixelwise tier 1 and 2 are derived from the tier3_refined predictions. 
-        The majority tier 3 is first derived from the tier3_refined predictions. And then the majority tier 1 and 2 are derived from the majority tier 3 predictions.
+        The pixelwise tier predictions are derived from the refinement_head_outputs predictions. 
+        The majority last tier predictions are derived from the refinement_head_outputs. And then the majority lower-tier predictions are derived from the majority highest-tier predictions.
 
         Also sets the background to 0 for all field majority predictions (regardless of what the model predicts for the background class).
         As this is a classification task and not a segmentation task and the field boundaries are known beforehand and not of any interest.
 
         Args:
-            outputs (torch.Tensor(batch, C, H, W)): The probability outputs from the model for tier3_refined.
+            refinement_head_outputs (torch.Tensor(batch, C, H, W)): The probability outputs from the model for the refined tier.
+            tiers (list of str): List of tiers e.g. ['tier1', 'tier2', 'tier3'].
             field_ids (torch.Tensor(batch, H, W)): The field IDs for each prediction.
             dataset_info (dict): The dataset information.
 
@@ -421,29 +432,37 @@ class LogConfusionMatrix(pl.Callback):
             torch.Tensor(tiers, batch, H, W): The majority predictions.
         """
         
-        pixelwise_tier3 = torch.softmax(outputs, dim=1).argmax(dim=1) # (batch, H, W)
-        majority_tier3 = LogConfusionMatrix.get_field_majority_preds(outputs, field_ids)
+        # Assuming the highest tier is the last one in the list
+        highest_tier = tiers[-1]
 
-        tier3_to_tier1, tier3_to_tier2 = dataset_info['tier3_to_tier1'], dataset_info['tier3_to_tier2']
+        pixelwise_highest_tier = torch.softmax(refinement_head_outputs, dim=1).argmax(dim=1)  # (batch, H, W)
+        majority_highest_tier = LogConfusionMatrix.get_field_majority_preds(refinement_head_outputs, field_ids)
 
-        pixelwise_tier1, pixelwise_tier2 = torch.zeros_like(pixelwise_tier3), torch.zeros_like(pixelwise_tier3)
-        majority_tier1, majority_tier2 = torch.zeros_like(majority_tier3), torch.zeros_like(majority_tier3)
+        tier_mapping = {tier: dataset_info[f'{highest_tier}_to_{tier}'] for tier in tiers if tier != highest_tier}
 
-        # map tier 3 to tier 2 and tier 1
-        for i, (class_index_tier1, class_index_tier2) in enumerate(zip(tier3_to_tier1, tier3_to_tier2)):
-            pixelwise_tier1[pixelwise_tier3 == i] = class_index_tier1
-            pixelwise_tier2[pixelwise_tier3 == i] = class_index_tier2
-            majority_tier1[majority_tier3 == i] = class_index_tier1
-            majority_tier2[majority_tier3 == i] = class_index_tier2
-        
-        pixelwise_outputs = torch.stack((pixelwise_tier1, pixelwise_tier2, pixelwise_tier3))
-        majority_outputs = torch.stack((majority_tier1, majority_tier2, majority_tier3))
+        pixelwise_outputs = {highest_tier: pixelwise_highest_tier}
+        majority_outputs = {highest_tier: majority_highest_tier}
+
+        # Initialize pixelwise and majority outputs for each tier
+        for tier in tiers:
+            if tier != highest_tier:
+                pixelwise_outputs[tier] = torch.zeros_like(pixelwise_highest_tier)
+                majority_outputs[tier] = torch.zeros_like(majority_highest_tier)
+
+        # Map the highest tier to lower tiers
+        for i, mappings in enumerate(zip(*tier_mapping.values())):
+            for j, tier in enumerate(tier_mapping.keys()):
+                pixelwise_outputs[tier][pixelwise_highest_tier == i] = mappings[j]
+                majority_outputs[tier][majority_highest_tier == i] = mappings[j]
+
+        pixelwise_outputs_stacked = torch.stack([pixelwise_outputs[tier] for tier in tiers])
+        majority_outputs_stacked = torch.stack([majority_outputs[tier] for tier in tiers])
 
         # Ensure these are tensors
-        assert isinstance(pixelwise_outputs, torch.Tensor), "pixelwise_outputs is not a tensor"
-        assert isinstance(majority_outputs, torch.Tensor), "majority_outputs is not a tensor"
+        assert isinstance(pixelwise_outputs_stacked, torch.Tensor), "pixelwise_outputs_stacked is not a tensor"
+        assert isinstance(majority_outputs_stacked, torch.Tensor), "majority_outputs_stacked is not a tensor"
 
-        return pixelwise_outputs, majority_outputs
+        return pixelwise_outputs_stacked, majority_outputs_stacked
 
 
     @staticmethod
@@ -520,12 +539,12 @@ class LogConfusionMatrix(pl.Callback):
                 ax.xaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(1)+1)))
                 ax.yaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(0)+1)))
 
-                clean_tier = tier.split('_')[0] if '_refined' in tier else tier
-                ax.set_xticklabels(self.dataset_info[clean_tier] + [''], rotation=45)
-                ax.set_yticklabels(self.dataset_info[clean_tier] + [''])
+                class_labels = self.dataset_info[tier]
+                ax.set_xticklabels(class_labels + [''], rotation=45)
+                ax.set_yticklabels(class_labels + [''])
 
                 # Add total number of instances to the y-axis labels
-                y_labels = [f'{self.dataset_info[clean_tier][i]} [n={int(row_sums[i].item()):,.0f}]'.replace(',', "'") for i in range(matrix.size(0))]
+                y_labels = [f'{class_labels[i]} [n={int(row_sums[i].item()):,.0f}]'.replace(',', "'") for i in range(matrix.size(0))]
                 ax.set_yticklabels(y_labels + [''])
 
                 ax.set_xlabel('Predictions')
@@ -551,16 +570,23 @@ class LogMessisMetrics(pl.Callback):
     def __init__(self, hparams, dataset_info_file, debug=False):
         super().__init__()
 
-        assert hparams.get('tiers') is not None, "Tiers must be defined in the hparams"
+        assert hparams.get('heads_spec') is not None, "heads_spec must be defined in the hparams"
+        self.tiers_dict = {k: v for k, v in hparams.get('heads_spec').items() if v.get('is_metrics_tier', False)}
+        self.last_tier_name = next((k for k, v in hparams.get('heads_spec').items() if v.get('is_last_tier', False)), None)
+        self.final_head_name = next((k for k, v in hparams.get('heads_spec').items() if v.get('is_final_head', False)), None)
 
-        self.tiers_dict = hparams.get('tiers')
-        self.tiers = ['tier1', 'tier2', 'tier3']
+        assert self.last_tier_name is not None, "No tier found with 'is_last_tier' set to True"
+        assert self.final_head_name is not None, "No head found with 'is_final_head' set to True"
+
+        self.tiers = list(self.tiers_dict.keys())
         self.phases = ['train', 'val', 'test']
         self.modes = ['pixelwise', 'majority']
         self.debug = debug
 
         if debug:
-            print(f"Phases: {self.phases}, Tiers: {self.tiers}, Modes: {self.modes}")
+            print(f"Last tier identified as: {self.last_tier_name}")
+            print(f"Final head identified as: {self.final_head_name}")
+            print(f"LogMessisMetrics Metrics over | Phases: {self.phases}, Tiers: {self.tiers}, Modes: {self.modes}")
 
         with open(dataset_info_file, 'r') as f:
             self.dataset_info = json.load(f)
@@ -574,7 +600,7 @@ class LogMessisMetrics(pl.Callback):
         self.inputs_to_log = {phase: None for phase in self.phases}
 
     def __init_metrics(self, tier, phase):
-        num_classes = self.tiers_dict[tier]['num_classes']
+        num_classes = self.tiers_dict[tier]['num_classes_to_predict']
 
         accuracy = classification.MulticlassAccuracy(num_classes=num_classes, average='macro')
         per_class_accuracies = {
@@ -621,10 +647,10 @@ class LogMessisMetrics(pl.Callback):
             print(f"{phase} batch ended. Updating metrics...")
 
         targets = torch.stack(batch[1][0]) # (tiers, batch, H, W)
-        outputs = outputs['outputs'][-1] # (batch, H, W)        
+        outputs = outputs['outputs'][self.final_head_name] # (batch, C, H, W)        
         field_ids = batch[1][1].permute(1, 0, 2, 3)[0]
 
-        pixelwise_outputs, majority_outputs = LogConfusionMatrix.get_pixelwise_and_majority_outputs(outputs, field_ids, self.dataset_info)        
+        pixelwise_outputs, majority_outputs = LogConfusionMatrix.get_pixelwise_and_majority_outputs(outputs, self.tiers, field_ids, self.dataset_info)        
 
         for preds, mode in zip([pixelwise_outputs, majority_outputs], self.modes):
 
@@ -716,7 +742,7 @@ class LogMessisMetrics(pl.Callback):
         pixel_wise_masks = self.images_to_log[phase]["pixelwise"].cpu().numpy()
         field_majority_masks = self.images_to_log[phase]["majority"].cpu().numpy()
         correctness_masks = self.create_positive_negative_segmentation_mask(field_majority_masks, ground_truth_masks)
-        class_labels = {idx: name for idx, name in enumerate(self.dataset_info["tier3"])}
+        class_labels = {idx: name for idx, name in enumerate(self.dataset_info[self.last_tier_name])}
 
         segmentation_masks = []
         for input_data, ground_truth_mask, pixel_wise_mask, field_majority_mask, correctness_mask in zip(batch_input_data, ground_truth_masks, pixel_wise_masks, field_majority_masks, correctness_masks):
