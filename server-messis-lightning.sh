@@ -19,7 +19,7 @@ logfile="logs/server/output_${timestamp}.log"
   poetry run jupyter nbconvert --to script model_training.ipynb
 
   echo "Running model training script..."
-  poetry run python model_training.py  # Essential to use srun for multi-GPU training!
+  poetry run python model_training.py # Essential to use srun for multi-GPU training!
 
   # For debugging, use papermill to run the notebook and see print statements
   # poetry run papermill model_training.ipynb model_training.output.ipynb
