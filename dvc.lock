@@ -168,8 +168,8 @@ stages:
     outs:
     - path: data/chips_stats.yaml
       hash: md5
-      md5: 47752ad7cb66231a25e7c72d26da98f5
-      size: 1870
+      md5: f1c6a95889e1c1e7c03989424ca4ed0d
+      size: 1853
   download-prithvi-base-model:
     cmd: papermill download_prithvi_100M.ipynb download_prithvi_100M.output.ipynb
       && rm download_prithvi_100M.output.ipynb
