@@ -579,7 +579,7 @@ class LogMessisMetrics(pl.Callback):
             self.dataset_info = json.load(f)
 
         # Initialize metrics
-        self.metrics_to_compute = ['accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
+        self.metrics_to_compute = ['accuracy', 'weighted_accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
         self.metrics = {phase: {tier: {mode: self.__init_metrics(tier, phase) for mode in self.modes} for tier in self.tiers} for phase in self.phases}
         self.images_to_log = {phase: {mode: None for mode in self.modes} for phase in self.phases}
         self.images_to_log_targets = {phase: None for phase in self.phases}
@@ -590,6 +590,7 @@ class LogMessisMetrics(pl.Callback):
         num_classes = self.tiers_dict[tier]['num_classes']
 
         accuracy = classification.MulticlassAccuracy(num_classes=num_classes, average='macro')
+        weighted_accuracy = classification.MulticlassAccuracy(num_classes=num_classes, average='weighted')
         per_class_accuracies = {
             class_index: classification.MulticlassAccuracy(num_classes=num_classes, average='macro') for class_index in range(num_classes)
         }
@@ -600,6 +601,7 @@ class LogMessisMetrics(pl.Callback):
 
         return {
             'accuracy': accuracy,
+            'weighted_accuracy': weighted_accuracy,
             'per_class_accuracies': per_class_accuracies,
             'precision': precision,
             'recall': recall,
@@ -687,7 +689,7 @@ class LogMessisMetrics(pl.Callback):
             for mode in self.modes:
                 metrics = self.metrics[phase][tier][mode]
 
-                # Calculate and reset in tier: Accuracy, Precision, Recall, F1, Cohen's Kappa
+                # Calculate and reset in tier: Accuracy, WeightedAccuracy, Precision, Recall, F1, Cohen's Kappa
                 metrics_dict = {metric: metrics[metric].compute() for metric in self.metrics_to_compute}
                 pl_module.log_dict({f"{phase}_{metric}_{tier}_{mode}": v for metric, v in metrics_dict.items()}, on_step=False, on_epoch=True)
                 for metric in self.metrics_to_compute:
