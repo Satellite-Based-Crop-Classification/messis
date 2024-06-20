@@ -592,7 +592,7 @@ class LogMessisMetrics(pl.Callback):
         accuracy = classification.MulticlassAccuracy(num_classes=num_classes, average='macro')
         weighted_accuracy = classification.MulticlassAccuracy(num_classes=num_classes, average='weighted')
         per_class_accuracies = {
-            class_index: classification.MulticlassAccuracy(num_classes=num_classes, average='macro') for class_index in range(num_classes)
+            class_index: classification.BinaryAccuracy() for class_index in range(num_classes)
         }
         precision = classification.MulticlassPrecision(num_classes=num_classes, average='macro')
         recall = classification.MulticlassRecall(num_classes=num_classes, average='macro')
@@ -667,9 +667,11 @@ class LogMessisMetrics(pl.Callback):
 
     def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
         for class_index, class_accuracy in per_class_accuracies.items():
-            class_mask = targets == class_index
-            if class_mask.any():
-                class_accuracy.update(preds[class_mask], targets[class_mask])
+            preds_class = (preds == class_index)
+            targets_class = (targets == class_index)
+
+            if targets_class.any():
+                class_accuracy.update(preds_class, targets_class)
                 if self.debug:
                     print(f"Per-class accuracy for class {class_index} updated. Update count: {class_accuracy._update_count}")
 
