@@ -1,0 +1,49 @@
+tier_1,tier_2,tier_3,tier_4,pixel_count,label_ids,lnf_codes,label_slug
+Vegetation,Grassland,Meadow,Meadow,3249831,"['58', '59', '60', '61', '62', '66', '67', '71']","['601', '602', '611', '612', '613', '621', '622', '634']",Vegetation_Grassland_Meadow_Meadow
+Vegetation,Field crops,SmallGrainCereal,WinterWheat,837126,['10'],['513'],Vegetation_Field crops_SmallGrainCereal_WinterWheat
+Vegetation,Field crops,LargeGrainCereal,Maize,809566,"['7', '14', '15']","['508', '519', '521']",Vegetation_Field crops_LargeGrainCereal_Maize
+Vegetation,Grassland,Pasture,Pasture,505770,"['63', '64', '65', '68', '123']","['616', '617', '618', '625', '930']",Vegetation_Grassland_Pasture_Pasture
+Vegetation,Field crops,BroadLeafRowCrop,Sugar_beets,295998,['16'],['522'],Vegetation_Field crops_BroadLeafRowCrop_Sugar_beets
+Vegetation,Field crops,SmallGrainCereal,WinterBarley,292885,['2'],['502'],Vegetation_Field crops_SmallGrainCereal_WinterBarley
+Vegetation,Field crops,BroadLeafRowCrop,WinterRapeseed,219773,"['21', '53']","['527', '591']",Vegetation_Field crops_BroadLeafRowCrop_WinterRapeseed
+Vegetation,Field crops,VegetableCrop,Vegetables,188621,"['34', '35']","['545', '546']",Vegetation_Field crops_VegetableCrop_Vegetables
+Vegetation,Field crops,BroadLeafRowCrop,Potatoes,110835,"['18', '19']","['524', '525']",Vegetation_Field crops_BroadLeafRowCrop_Potatoes
+Vegetation,Field crops,SmallGrainCereal,Wheat,97948,"['4', '6']","['505', '507']",Vegetation_Field crops_SmallGrainCereal_Wheat
+Vegetation,Field crops,BroadLeafRowCrop,Sunflowers,70232,"['23', '54']","['531', '592']",Vegetation_Field crops_BroadLeafRowCrop_Sunflowers
+Vegetation,Orchards,OrchardCrop,Vines,56337,"['74', '88', '93', '95']","['701', '717', '722', '735']",Vegetation_Orchards_OrchardCrop_Vines
+Vegetation,Field crops,SmallGrainCereal,Spelt,56321,['13'],['516'],Vegetation_Field crops_SmallGrainCereal_Spelt
+Vegetation,Special crops,Fallow,Fallow,27371,"['44', '45']","['556', '557']",Vegetation_Special crops_Fallow_Fallow
+Vegetation,Special crops,Hedge,Hedge,27329,"['108', '109', '110']","['852', '857', '858']",Vegetation_Special crops_Hedge_Hedge
+Vegetation,Orchards,OrchardCrop,Apples,26699,['75'],['702'],Vegetation_Orchards_OrchardCrop_Apples
+Vegetation,Field crops,BroadLeafRowCrop,Soy,25544,['22'],['528'],Vegetation_Field crops_BroadLeafRowCrop_Soy
+Vegetation,Field crops,BroadLeafRowCrop,Peas,22732,['27'],['537'],Vegetation_Field crops_BroadLeafRowCrop_Peas
+Vegetation,Field crops,SmallGrainCereal,Oat,17895,['3'],['504'],Vegetation_Field crops_SmallGrainCereal_Oat
+Vegetation,Special crops,Berries,Berries,13969,"['39', '78']","['551', '705']",Vegetation_Special crops_Berries_Berries
+Vegetation,Field crops,SmallGrainCereal,EinkornWheat,12525,['8'],['511'],Vegetation_Field crops_SmallGrainCereal_EinkornWheat
+Vegetation,Field crops,BroadLeafRowCrop,Field bean,11369,['26'],['536'],Vegetation_Field crops_BroadLeafRowCrop_Field bean
+Vegetation,Field crops,SmallGrainCereal,SummerWheat,11065,['9'],['512'],Vegetation_Field crops_SmallGrainCereal_SummerWheat
+Vegetation,Field crops,SmallGrainCereal,Rye,10602,['11'],['514'],Vegetation_Field crops_SmallGrainCereal_Rye
+Vegetation,Orchards,TreeCrop,TreeCrop,8906,"['84', '85']","['712', '713']",Vegetation_Orchards_TreeCrop_TreeCrop
+Vegetation,Orchards,OrchardCrop,StoneFruit,6038,['77'],['704'],Vegetation_Orchards_OrchardCrop_StoneFruit
+Vegetation,Field crops,CropMix,MixedCrop,6022,['50'],['569'],Vegetation_Field crops_CropMix_MixedCrop
+Vegetation,Field crops,LargeGrainCereal,Sorghum,5272,"['31', '38']","['542', '549']",Vegetation_Field crops_LargeGrainCereal_Sorghum
+Vegetation,Field crops,SmallGrainCereal,Grain,4677,"['5', '12', '32']","['506', '515', '543']",Vegetation_Field crops_SmallGrainCereal_Grain
+Vegetation,Field crops,VegetableCrop,Chicory,4532,['36'],['547'],Vegetation_Field crops_VegetableCrop_Chicory
+Vegetation,Orchards,OrchardCrop,Pears,4442,['76'],['703'],Vegetation_Orchards_OrchardCrop_Pears
+Vegetation,Field crops,SmallGrainCereal,SummerBarley,4210,['1'],['501'],Vegetation_Field crops_SmallGrainCereal_SummerBarley
+Vegetation,Grassland,BiodiversityArea,Biodiversity encouragement area,3494,"['43', '51', '120']","['555', '572', '908']",Vegetation_Grassland_BiodiversityArea_Biodiversity encouragement area
+Vegetation,Forest,Forest,Forest,3417,['113'],['901'],Vegetation_Forest_Forest_Forest
+Vegetation,Field crops,BroadLeafRowCrop,Linen,3126,"['24', '33']","['534', '544']",Vegetation_Field crops_BroadLeafRowCrop_Linen
+Vegetation,Field crops,BroadLeafRowCrop,Legumes,2666,['69'],['631'],Vegetation_Field crops_BroadLeafRowCrop_Legumes
+Vegetation,Field crops,VegetableCrop,Pumpkin,1941,['29'],['539'],Vegetation_Field crops_VegetableCrop_Pumpkin
+Vegetation,Field crops,BroadLeafRowCrop,Tobacco,1788,['30'],['541'],Vegetation_Field crops_BroadLeafRowCrop_Tobacco
+Vegetation,Field crops,SmallGrainCereal,Buckwheat,1708,['37'],['548'],Vegetation_Field crops_SmallGrainCereal_Buckwheat
+Vegetation,Field crops,BroadLeafRowCrop,Hemp,1704,['25'],['535'],Vegetation_Field crops_BroadLeafRowCrop_Hemp
+Vegetation,Field crops,BroadLeafRowCrop,SummerRapeseed,1571,['20'],['526'],Vegetation_Field crops_BroadLeafRowCrop_SummerRapeseed
+Vegetation,Orchards,OrchardCrop,Hops,774,['81'],['708'],Vegetation_Orchards_OrchardCrop_Hops
+Vegetation,Field crops,BroadLeafRowCrop,Beets,644,['17'],['523'],Vegetation_Field crops_BroadLeafRowCrop_Beets
+Vegetation,Special crops,Multiple,Multiple,446,['114'],['902'],Vegetation_Special crops_Multiple_Multiple
+Vegetation,Field crops,BroadLeafRowCrop,Lupine,308,['28'],['538'],Vegetation_Field crops_BroadLeafRowCrop_Lupine
+Vegetation,Field crops,BroadLeafRowCrop,Mustard,174,['52'],['573'],Vegetation_Field crops_BroadLeafRowCrop_Mustard
+Vegetation,Special crops,Gardens,Gardens,38,['121'],['909'],Vegetation_Special crops_Gardens_Gardens
+Vegetation,Orchards,OrchardCrop,Chestnut,11,['91'],['720'],Vegetation_Orchards_OrchardCrop_Chestnut

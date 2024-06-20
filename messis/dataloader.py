@@ -157,11 +157,13 @@ class GeospatialDataset(Dataset):
         if self.transform_field_ids is not None:
             field_ids = self.transform_field_ids(field_ids)
 
-        targets_tier1 = mask[0, :, :].type(torch.long)
-        targets_tier2 = mask[1, :, :].type(torch.long)
-        targets_tier3 = mask[2, :, :].type(torch.long)
+        # Load targets for given tiers
+        num_tiers = mask.shape[0]
+        targets = ()
+        for i in range(num_tiers):
+            targets += (mask[i, :, :].type(torch.long),)
         
-        return img, ((targets_tier1, targets_tier2, targets_tier3), field_ids)
+        return img, (targets, field_ids)
 
 class GeospatialDataModule(LightningDataModule):
     def __init__(self, data_dir, train_folds, val_folds, test_folds, batch_size=8, num_workers=4, debug=False, subsets=None):
