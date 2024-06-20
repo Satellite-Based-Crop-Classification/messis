@@ -111,21 +111,19 @@ stages:
       nfiles: 114
     - path: prepare_dataset.ipynb
       hash: md5
-      md5: d9c77cc04fc93ece444de9c7991b3a98
-      size: 5334296
+      md5: 33d60b25102864451546e0274a79aa1a
+      size: 5194515
     params:
       params.yaml:
         chip_size: 224
         distribution_transform_mode: None
         fold_split_mode: stratified
         number_of_folds: 6
+        number_of_timespans: 3
         paths.field_ids: data/field_ids.tif
         paths.labels: data/labels.tif
         paths.labels_hierarchy: data/labels_hierarchy.tif
         paths.satellite: data/satellite
-        timespans.end: '2019-09-01'
-        timespans.number_of_timespans: 3
-        timespans.start: '2019-05-01'
     outs:
     - path: data/chips
       hash: md5
@@ -142,8 +140,8 @@ stages:
     deps:
     - path: calculate_dataset_stats.ipynb
       hash: md5
-      md5: 129e8d22b9c806cb4b855c05dac776ae
-      size: 4834
+      md5: a5a9421ea93168cd1c51a119a5064c19
+      size: 4821
     - path: data/chips
       hash: md5
       md5: f6ebfcbd60771972fb86c98a4d0a858e.dir
@@ -157,9 +155,9 @@ stages:
       params.yaml:
         number_of_bands: 6
         number_of_folds: 6
+        number_of_timespans: 3
         paths.chips: data/chips
         paths.labels_hierarchy: data/labels_hierarchy.tif
-        timespans.number_of_timespans: 3
     outs:
     - path: data/chips_stats.yaml
       hash: md5

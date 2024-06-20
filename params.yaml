@@ -4,8 +4,11 @@ fold_split_mode: 'stratified' # either 'band', 'stratified', 'random', or 'sechi
 distribution_transform_mode: None # either None, 'sqrt' or 'log'
 search_dates: '2019-05-01T00:00:00.000Z/2019-09-01T00:00:00.000Z'
 max_cloud_cover: 5
+number_of_timespans: 3
+number_of_bands: 6
 zueri_crop:
   bbox: [8.364, 47.240, 9.0405, 47.69894] # new bbox is 5120x5120 pixels to accomodate for a nicer chip size of 20x20 256x256-chips; Old Bounding Box was [8.364, 47.240, 9.000, 47.697]
+
 paths:
   chips: data/chips
   chips_stats: data/chips_stats.yaml
@@ -16,8 +19,3 @@ paths:
   field_ids: data/field_ids.tif
   stacked_features: data/stacked_features.tif
   dataset_info: data/dataset_info.json
-timespans:
-  number_of_timespans: 3
-  start: '2019-05-01'
-  end: '2019-09-01'
-number_of_bands: 6
