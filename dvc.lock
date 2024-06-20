@@ -145,8 +145,8 @@ stages:
     deps:
     - path: calculate_dataset_stats.ipynb
       hash: md5
-      md5: a5a9421ea93168cd1c51a119a5064c19
-      size: 4821
+      md5: 7aba0b8e6564ccab127483dcfc968c9b
+      size: 4765
     - path: data/chips
       hash: md5
       md5: f6ebfcbd60771972fb86c98a4d0a858e.dir
