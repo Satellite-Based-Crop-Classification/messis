@@ -50,9 +50,7 @@ stages:
     - number_of_folds
     - fold_split_mode
     - distribution_transform_mode
-    - timespans.number_of_timespans
-    - timespans.start
-    - timespans.end
+    - number_of_timespans
     - paths.satellite
     - paths.labels
     - paths.labels_hierarchy
@@ -70,7 +68,7 @@ stages:
     params:
     - paths.chips
     - paths.labels_hierarchy
-    - timespans.number_of_timespans
+    - number_of_timespans
     - number_of_bands
     - number_of_folds
     outs:
