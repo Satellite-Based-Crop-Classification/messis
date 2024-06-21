@@ -680,6 +680,10 @@ class LogMessisMetrics(pl.Callback):
 
     def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
         for class_index, class_accuracy in per_class_accuracies.items():
+            if self.debug:
+                print(f"Shape of preds: {preds.shape}")
+                print(f"Shape of targets: {targets.shape}")
+
             if class_index == 0:
                 # Mask out non-background elements for background class (0)
                 background_mask = targets != 0
@@ -690,9 +694,20 @@ class LogMessisMetrics(pl.Callback):
             preds_fields = preds[~background_mask]
             targets_fields = targets[~background_mask]
 
+            if self.debug:
+                # print shape of preds_fields and targets_fields
+                print(f"Shape of preds_fields: {preds_fields.shape}")
+                print(f"Shape of targets_fields: {targets_fields.shape}")
+                print(f"Unique values in preds_fields: {torch.unique(preds_fields)}")
+                print(f"Unique values in targets_fields: {torch.unique(targets_fields)}")
+
             # Prepare for binary classification (needs to be float)
             preds_class = (preds_fields == class_index).float()
             targets_class = (targets_fields == class_index).float()
+
+            if self.debug:
+                print(f"Unique values in preds_class: {torch.unique(preds_class)}")
+                print(f"Unique values in targets_class: {torch.unique(targets_class)}")
 
             if targets_class.any():
                 class_accuracy.update(preds_class, targets_class)
