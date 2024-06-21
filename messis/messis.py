@@ -680,13 +680,24 @@ class LogMessisMetrics(pl.Callback):
 
     def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
         for class_index, class_accuracy in per_class_accuracies.items():
-            preds_class = (preds == class_index)
-            targets_class = (targets == class_index)
+            if class_index == 0:
+                # Mask out non-background elements for background class (0)
+                background_mask = targets != 0
+            else:
+                # Mask out background elements for other classes
+                background_mask = targets == 0
+
+            preds_fields = preds[~background_mask]
+            targets_fields = targets[~background_mask]
+
+            # Prepare for binary classification (needs to be float)
+            preds_class = (preds_fields == class_index).float()
+            targets_class = (targets_fields == class_index).float()
 
             if targets_class.any():
                 class_accuracy.update(preds_class, targets_class)
                 if self.debug:
-                    print(f"Per-class accuracy for class {class_index} updated. Update count: {class_accuracy._update_count}")
+                    print(f"Per-class accuracy for class {class_index} updated. Update count: {per_class_accuracies[class_index]._update_count}")
 
     def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
         self.__on_epoch_end(trainer, pl_module, 'train')
