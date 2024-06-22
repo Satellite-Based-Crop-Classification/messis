@@ -538,7 +538,7 @@ class LogConfusionMatrix(pl.Callback):
                 # Check for zero rows after sorting
                 zero_rows = (row_sums_sorted == 0).squeeze()
 
-                fig, ax = plt.subplots(figsize=(matrix.size(0), matrix.size(0)), dpi=100)
+                fig, ax = plt.subplots(figsize=(matrix.size(0), matrix.size(0)), dpi=200)
 
                 ax.matshow(matrix_percent.cpu().numpy(), cmap='viridis')
 
