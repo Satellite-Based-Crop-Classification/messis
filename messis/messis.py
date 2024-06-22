@@ -672,13 +672,13 @@ class LogMessisMetrics(pl.Callback):
                     metrics[metric].update(pred, target)
                     if self.debug:
                         print(f"{phase} {tier} {mode} {metric} updated. Update count: {metrics[metric]._update_count}")
-                self.__update_per_class_accuracy(pred, target, metrics['per_class_accuracies'])
+                self.__update_per_class_metrics(pred, target, metrics['per_class_accuracies'])
 
         self.images_to_log_targets[phase] = targets[-1]
         self.field_ids_to_log_targets[phase] = field_ids
         self.inputs_to_log[phase] = batch[0]
 
-    def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
+    def __update_per_class_metrics(self, preds, targets, per_class_accuracies):
         for class_index, class_accuracy in per_class_accuracies.items():
             if not (targets == class_index).any():
                 continue
@@ -694,7 +694,6 @@ class LogMessisMetrics(pl.Callback):
             targets_fields = targets[~background_mask]
 
             if self.debug:
-                # print shape of preds_fields and targets_fields
                 print(f"Shape of preds_fields: {preds_fields.shape}")
                 print(f"Shape of targets_fields: {targets_fields.shape}")
                 print(f"Unique values in preds_fields: {torch.unique(preds_fields)}")
@@ -706,7 +705,7 @@ class LogMessisMetrics(pl.Callback):
 
             class_accuracy.update(preds_class, targets_class)
             if self.debug:
-                print(f"Per-class accuracy for class {class_index} updated. Update count: {per_class_accuracies[class_index]._update_count}")
+                print(f"Per-class metrics for class {class_index} updated. Update count: {per_class_accuracies[class_index]._update_count}")
 
     def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
         self.__on_epoch_end(trainer, pl_module, 'train')
@@ -730,17 +729,23 @@ class LogMessisMetrics(pl.Callback):
                 for metric in self.metrics_to_compute:
                     metrics[metric].reset()
 
+                # Per-class metrics
+                # NOTE: Some literature reports "per class accuracy" but what they actually mean is "per class recall".
+                # Using the accuracy formula per class has no value in our imbalanced multi-class setting (TN's inflate scores!)
+                # We calculate all 4 metrics. This allows us to calculate any macro/micro score later if needed.
+                class_metrics = []
                 class_names_mapping = self.dataset_info[tier.split('_')[0] if '_refined' in tier else tier] 
-
-                class_accuracies = []
                 for class_index, class_accuracy in metrics['per_class_accuracies'].items():
                     if class_accuracy._update_count == 0:
                         continue  # Skip if no updates have been made
-                    class_accuracies.append([class_index, class_names_mapping[class_index], class_accuracy.compute()])
+                    tp, tn, fp, fn = class_accuracy.tp, class_accuracy.tn, class_accuracy.fp, class_accuracy.fn
+                    recall = (tp / (tp + fn)).item() if tp + fn > 0 else 0
+                    precision = (tp / (tp + fp)).item() if tp + fp > 0 else 0
+                    f1 = (2 * (precision * recall) / (precision + recall)) if precision + recall > 0 else 0
+                    class_metrics.append([class_index, class_names_mapping[class_index], precision, recall, f1, class_accuracy.compute().item()])
                     class_accuracy.reset()
-                wandb_table = wandb.Table(data=class_accuracies, columns=["Class Index", "Class Name", "Accuracy"])
-                # Log the table
-                trainer.logger.experiment.log({f"{phase}_per_class_accuracies_{tier}_{mode}": wandb_table})
+                wandb_table = wandb.Table(data=class_metrics, columns=["Class Index", "Class Name", "Precision", "Recall", "F1", "Accuracy"])
+                trainer.logger.experiment.log({f"{phase}_per_class_metrics_{tier}_{mode}": wandb_table})
 
         # use the same n_classes for all images, such that they are comparable
         n_classes = max([
