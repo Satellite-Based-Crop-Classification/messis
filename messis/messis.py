@@ -741,9 +741,10 @@ class LogMessisMetrics(pl.Callback):
                     recall = (tp / (tp + fn)).item() if tp + fn > 0 else 0
                     precision = (tp / (tp + fp)).item() if tp + fp > 0 else 0
                     f1 = (2 * (precision * recall) / (precision + recall)) if precision + recall > 0 else 0
-                    class_metrics.append([class_index, class_names_mapping[class_index], precision, recall, f1, class_accuracy.compute().item()])
+                    n_of_class = (tp + fn).item()
+                    class_metrics.append([class_index, class_names_mapping[class_index], precision, recall, f1, class_accuracy.compute().item(), n_of_class])
                     class_accuracy.reset()
-                wandb_table = wandb.Table(data=class_metrics, columns=["Class Index", "Class Name", "Precision", "Recall", "F1", "Accuracy"])
+                wandb_table = wandb.Table(data=class_metrics, columns=["Class Index", "Class Name", "Precision", "Recall", "F1", "Accuracy", "N"])
                 trainer.logger.experiment.log({f"{phase}_per_class_metrics_{tier}_{mode}": wandb_table})
 
         # use the same n_classes for all images, such that they are comparable
