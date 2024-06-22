@@ -592,7 +592,7 @@ class LogMessisMetrics(pl.Callback):
             self.dataset_info = json.load(f)
 
         # Initialize metrics
-        self.metrics_to_compute = ['accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
+        self.metrics_to_compute = ['accuracy', 'weighted_accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
         self.metrics = {phase: {tier: {mode: self.__init_metrics(tier, phase) for mode in self.modes} for tier in self.tiers} for phase in self.phases}
         self.images_to_log = {phase: {mode: None for mode in self.modes} for phase in self.phases}
         self.images_to_log_targets = {phase: None for phase in self.phases}
@@ -603,8 +603,9 @@ class LogMessisMetrics(pl.Callback):
         num_classes = self.tiers_dict[tier]['num_classes_to_predict']
 
         accuracy = classification.MulticlassAccuracy(num_classes=num_classes, average='macro')
+        weighted_accuracy = classification.MulticlassAccuracy(num_classes=num_classes, average='weighted')
         per_class_accuracies = {
-            class_index: classification.MulticlassAccuracy(num_classes=num_classes, average='macro') for class_index in range(num_classes)
+            class_index: classification.BinaryAccuracy() for class_index in range(num_classes)
         }
         precision = classification.MulticlassPrecision(num_classes=num_classes, average='macro')
         recall = classification.MulticlassRecall(num_classes=num_classes, average='macro')
@@ -613,6 +614,7 @@ class LogMessisMetrics(pl.Callback):
 
         return {
             'accuracy': accuracy,
+            'weighted_accuracy': weighted_accuracy,
             'per_class_accuracies': per_class_accuracies,
             'precision': precision,
             'recall': recall,
@@ -670,19 +672,39 @@ class LogMessisMetrics(pl.Callback):
                     metrics[metric].update(pred, target)
                     if self.debug:
                         print(f"{phase} {tier} {mode} {metric} updated. Update count: {metrics[metric]._update_count}")
-                self.__update_per_class_accuracy(pred, target, metrics['per_class_accuracies'])
+                self.__update_per_class_metrics(pred, target, metrics['per_class_accuracies'])
 
         self.images_to_log_targets[phase] = targets[-1]
         self.field_ids_to_log_targets[phase] = field_ids
         self.inputs_to_log[phase] = batch[0]
 
-    def __update_per_class_accuracy(self, preds, targets, per_class_accuracies):
+    def __update_per_class_metrics(self, preds, targets, per_class_accuracies):
         for class_index, class_accuracy in per_class_accuracies.items():
-            class_mask = targets == class_index
-            if class_mask.any():
-                class_accuracy.update(preds[class_mask], targets[class_mask])
-                if self.debug:
-                    print(f"Per-class accuracy for class {class_index} updated. Update count: {class_accuracy._update_count}")
+            if not (targets == class_index).any():
+                continue
+            
+            if class_index == 0:
+                # Mask out non-background elements for background class (0)
+                class_mask = targets != 0
+            else:
+                # Mask out background elements for other classes
+                class_mask = targets == 0
+
+            preds_fields = preds[~class_mask]
+            targets_fields = targets[~class_mask]
+
+            # Prepare for binary classification (needs to be float)
+            preds_class = (preds_fields == class_index).float()
+            targets_class = (targets_fields == class_index).float()
+
+            class_accuracy.update(preds_class, targets_class)
+
+            if self.debug:
+                print(f"Shape of preds_fields: {preds_fields.shape}")
+                print(f"Shape of targets_fields: {targets_fields.shape}")
+                print(f"Unique values in preds_fields: {torch.unique(preds_fields)}")
+                print(f"Unique values in targets_fields: {torch.unique(targets_fields)}")
+                print(f"Per-class metrics for class {class_index} updated. Update count: {per_class_accuracies[class_index]._update_count}")
 
     def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
         self.__on_epoch_end(trainer, pl_module, 'train')
@@ -700,23 +722,30 @@ class LogMessisMetrics(pl.Callback):
             for mode in self.modes:
                 metrics = self.metrics[phase][tier][mode]
 
-                # Calculate and reset in tier: Accuracy, Precision, Recall, F1, Cohen's Kappa
+                # Calculate and reset in tier: Accuracy, WeightedAccuracy, Precision, Recall, F1, Cohen's Kappa
                 metrics_dict = {metric: metrics[metric].compute() for metric in self.metrics_to_compute}
                 pl_module.log_dict({f"{phase}_{metric}_{tier}_{mode}": v for metric, v in metrics_dict.items()}, on_step=False, on_epoch=True)
                 for metric in self.metrics_to_compute:
                     metrics[metric].reset()
 
+                # Per-class metrics
+                # NOTE: Some literature reports "per class accuracy" but what they actually mean is "per class recall".
+                # Using the accuracy formula per class has no value in our imbalanced multi-class setting (TN's inflate scores!)
+                # We calculate all 4 metrics. This allows us to calculate any macro/micro score later if needed.
+                class_metrics = []
                 class_names_mapping = self.dataset_info[tier.split('_')[0] if '_refined' in tier else tier] 
-
-                class_accuracies = []
                 for class_index, class_accuracy in metrics['per_class_accuracies'].items():
                     if class_accuracy._update_count == 0:
                         continue  # Skip if no updates have been made
-                    class_accuracies.append([class_index, class_names_mapping[class_index], class_accuracy.compute()])
+                    tp, tn, fp, fn = class_accuracy.tp, class_accuracy.tn, class_accuracy.fp, class_accuracy.fn
+                    recall = (tp / (tp + fn)).item() if tp + fn > 0 else 0
+                    precision = (tp / (tp + fp)).item() if tp + fp > 0 else 0
+                    f1 = (2 * (precision * recall) / (precision + recall)) if precision + recall > 0 else 0
+                    n_of_class = (tp + fn).item()
+                    class_metrics.append([class_index, class_names_mapping[class_index], precision, recall, f1, class_accuracy.compute().item(), n_of_class])
                     class_accuracy.reset()
-                wandb_table = wandb.Table(data=class_accuracies, columns=["Class Index", "Class Name", "Accuracy"])
-                # Log the table
-                trainer.logger.experiment.log({f"{phase}_per_class_accuracies_{tier}_{mode}": wandb_table})
+                wandb_table = wandb.Table(data=class_metrics, columns=["Class Index", "Class Name", "Precision", "Recall", "F1", "Accuracy", "N"])
+                trainer.logger.experiment.log({f"{phase}_per_class_metrics_{tier}_{mode}": wandb_table})
 
         # use the same n_classes for all images, such that they are comparable
         n_classes = max([

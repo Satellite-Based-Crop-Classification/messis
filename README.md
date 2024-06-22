@@ -217,3 +217,19 @@ poetry run srun python model_training.py  # Essential to use srun for multi-GPU
 ```
 
 To start the training, run `sbatch messis-lightning.sh` in the terminal of the SLURM login node.
+
+## Debugging on Remote Server
+
+1. Start debug server on your remote server: 
+
+    For GPU Server:
+    ```bash
+    python -m debugpy --listen 0.0.0.0:5678 --wait-for-client model_training.py`
+    ```
+
+    For SLURM (untested):
+    ```bash
+    srun --partition top6 poetry run python -m debugpy --listen
+    ```
+
+2. Launch the "Remote Attach" debug configuration in your VS Code (see `.vscode/launch.json`). VS Code will connect to the debug server on the remote server and you can debug as usual.
