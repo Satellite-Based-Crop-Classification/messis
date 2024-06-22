@@ -532,6 +532,12 @@ class LogConfusionMatrix(pl.Callback):
                 # Check for zero rows
                 zero_rows = (row_sums == 0).squeeze()
 
+                # Sort the matrix and labels by the total number of instances
+                sorted_indices = row_sums.squeeze().argsort(descending=True)
+                matrix_percent = matrix_percent[sorted_indices]
+                class_labels = [self.dataset_info[tier][i] for i in sorted_indices]
+                row_sums_sorted = row_sums[sorted_indices]
+
                 fig, ax = plt.subplots(figsize=(matrix.size(0), matrix.size(0)), dpi=100)
 
                 ax.matshow(matrix_percent.cpu().numpy(), cmap='viridis')
@@ -539,12 +545,11 @@ class LogConfusionMatrix(pl.Callback):
                 ax.xaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(1)+1)))
                 ax.yaxis.set_major_locator(ticker.FixedLocator(range(matrix.size(0)+1)))
 
-                class_labels = self.dataset_info[tier]
                 ax.set_xticklabels(class_labels + [''], rotation=45)
                 ax.set_yticklabels(class_labels + [''])
 
                 # Add total number of instances to the y-axis labels
-                y_labels = [f'{class_labels[i]} [n={int(row_sums[i].item()):,.0f}]'.replace(',', "'") for i in range(matrix.size(0))]
+                y_labels = [f'{class_labels[i]} [n={int(row_sums_sorted[i].item()):,.0f}]'.replace(',', "'") for i in range(matrix.size(0))]
                 ax.set_yticklabels(y_labels + [''])
 
                 ax.set_xlabel('Predictions')
