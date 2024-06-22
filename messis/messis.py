@@ -685,26 +685,25 @@ class LogMessisMetrics(pl.Callback):
             
             if class_index == 0:
                 # Mask out non-background elements for background class (0)
-                background_mask = targets != 0
+                class_mask = targets != 0
             else:
                 # Mask out background elements for other classes
-                background_mask = targets == 0
+                class_mask = targets == 0
 
-            preds_fields = preds[~background_mask]
-            targets_fields = targets[~background_mask]
-
-            if self.debug:
-                print(f"Shape of preds_fields: {preds_fields.shape}")
-                print(f"Shape of targets_fields: {targets_fields.shape}")
-                print(f"Unique values in preds_fields: {torch.unique(preds_fields)}")
-                print(f"Unique values in targets_fields: {torch.unique(targets_fields)}")
+            preds_fields = preds[~class_mask]
+            targets_fields = targets[~class_mask]
 
             # Prepare for binary classification (needs to be float)
             preds_class = (preds_fields == class_index).float()
             targets_class = (targets_fields == class_index).float()
 
             class_accuracy.update(preds_class, targets_class)
+
             if self.debug:
+                print(f"Shape of preds_fields: {preds_fields.shape}")
+                print(f"Shape of targets_fields: {targets_fields.shape}")
+                print(f"Unique values in preds_fields: {torch.unique(preds_fields)}")
+                print(f"Unique values in targets_fields: {torch.unique(targets_fields)}")
                 print(f"Per-class metrics for class {class_index} updated. Update count: {per_class_accuracies[class_index]._update_count}")
 
     def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
