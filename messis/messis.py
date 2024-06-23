@@ -531,14 +531,15 @@ class LogConfusionMatrix(pl.Callback):
                     
                 # Sort the matrix and labels by the total number of instances
                 sorted_indices = row_sums.squeeze().argsort(descending=True)
-                matrix_percent = matrix_percent[sorted_indices]
+                matrix_percent = matrix_percent[sorted_indices, :] # sort rows
+                matrix_percent = matrix_percent[:, sorted_indices] # sort columns
                 class_labels = [self.dataset_info[tier][i] for i in sorted_indices]
                 row_sums_sorted = row_sums[sorted_indices]
 
                 # Check for zero rows after sorting
                 zero_rows = (row_sums_sorted == 0).squeeze()
 
-                fig, ax = plt.subplots(figsize=(matrix.size(0), matrix.size(0)), dpi=200)
+                fig, ax = plt.subplots(figsize=(matrix.size(0), matrix.size(0)), dpi=140)
 
                 ax.matshow(matrix_percent.cpu().numpy(), cmap='viridis')
 
