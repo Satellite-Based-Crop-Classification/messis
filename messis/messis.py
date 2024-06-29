@@ -84,7 +84,7 @@ class LabelRefinementHead(nn.Module):
     It takes the raw predictions from head 1, head 2 and head 3 and refines them to produce the final prediction for tier 3.
     According to ZueriCrop, this helps with making the predictions more consistent across the different tiers.
     """
-    def __init__(self, input_channels, num_classes):
+    def __init__(self, input_channels, num_classes, dropout_p=0.1):
         super(LabelRefinementHead, self).__init__()
         
         self.cnn_layers = nn.Sequential(
@@ -97,7 +97,7 @@ class LabelRefinementHead(nn.Module):
             nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            nn.Dropout(p=0.5),
+            nn.Dropout2d(p=dropout_p),
 
             # Skip connection (implemented in forward method)
             
@@ -108,7 +108,7 @@ class LabelRefinementHead(nn.Module):
             
             # 1x1 Convolutional layer to adjust the number of output channels to num_classes
             nn.Conv2d(in_channels=128, out_channels=num_classes, kernel_size=1, stride=1, padding=0),
-            nn.Dropout(p=0.5)
+            nn.Dropout2d(p=dropout_p)
         )
         
     def forward(self, x):
@@ -212,7 +212,7 @@ class HierarchicalClassifier(nn.Module):
 
             # NOTE: LabelRefinementHead must be the last in the dict, otherwise the total_classes will be incorrect
             if head_type == 'LabelRefinementHead':
-                self.refinement_head = LabelRefinementHead(input_channels=self.total_classes, num_classes=num_classes)
+                self.refinement_head = LabelRefinementHead(input_channels=self.total_classes, num_classes=num_classes, dropout_p=self.dropout_p)
                 self.refinement_head_name = head_name
                 self.loss_weights[head_name] = loss_weight
 
