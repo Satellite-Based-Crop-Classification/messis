@@ -598,7 +598,7 @@ class LogMessisMetrics(pl.Callback):
             self.dataset_info = json.load(f)
 
         # Initialize metrics
-        self.metrics_to_compute = ['accuracy', 'weighted_accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
+        self.metrics_to_compute = ['accuracy', 'weighted_accuracy', 'precision', 'weighted_precision', 'recall', 'weighted_recall' ,'f1', 'weighted_f1', 'cohen_kappa']
         self.metrics = {phase: {tier: {mode: self.__init_metrics(tier, phase) for mode in self.modes} for tier in self.tiers} for phase in self.phases}
         self.images_to_log = {phase: {mode: None for mode in self.modes} for phase in self.phases}
         self.images_to_log_targets = {phase: None for phase in self.phases}
@@ -614,8 +614,11 @@ class LogMessisMetrics(pl.Callback):
             class_index: classification.BinaryAccuracy() for class_index in range(num_classes)
         }
         precision = classification.MulticlassPrecision(num_classes=num_classes, average='macro')
+        weighted_precision = classification.MulticlassPrecision(num_classes=num_classes, average='weighted')
         recall = classification.MulticlassRecall(num_classes=num_classes, average='macro')
+        weighted_recall = classification.MulticlassRecall(num_classes=num_classes, average='weighted')
         f1 = classification.MulticlassF1Score(num_classes=num_classes, average='macro')
+        weighted_f1 = classification.MulticlassF1Score(num_classes=num_classes, average='weighted')
         cohen_kappa = classification.MulticlassCohenKappa(num_classes=num_classes)
 
         return {
@@ -623,8 +626,11 @@ class LogMessisMetrics(pl.Callback):
             'weighted_accuracy': weighted_accuracy,
             'per_class_accuracies': per_class_accuracies,
             'precision': precision,
+            'weighted_precision': weighted_precision,
             'recall': recall,
+            'weighted_recall': weighted_recall,
             'f1': f1,
+            'weighted_f1': weighted_f1,
             'cohen_kappa': cohen_kappa
         }
 
