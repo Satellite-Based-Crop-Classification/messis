@@ -12,7 +12,7 @@ from lion_pytorch import Lion
 
 import json
 
-from messis.prithvi import TemporalViTEncoder, ConvTransformerTokensToEmbeddingNeck
+from messis.prithvi import TemporalViTEncoder, ConvTransformerTokensToEmbeddingNeck, ConvTransformerTokensToEmbeddingBottleneckNeck
 
 
 def safe_shape(x):
@@ -139,6 +139,8 @@ class HierarchicalClassifier(nn.Module):
             bands=[0, 1, 2, 3, 4, 5], 
             backbone_weights_path=None, 
             freeze_backbone=True, 
+            use_bottleneck_neck=False,
+            bottleneck_reduction_factor=4,
             debug=False
         ):
         super(HierarchicalClassifier, self).__init__()
@@ -175,13 +177,23 @@ class HierarchicalClassifier(nn.Module):
             param.requires_grad = not freeze_backbone
 
         # Neck to transform the token-based output of the transformer into a spatial feature map
-        self.neck = ConvTransformerTokensToEmbeddingNeck(
-            embed_dim=self.embed_dim * self.num_frames,
-            output_embed_dim=self.output_embed_dim,
-            drop_cls_token=True,
-            Hp=self.hp,
-            Wp=self.wp,
-        )
+        if use_bottleneck_neck:
+            self.neck = ConvTransformerTokensToEmbeddingBottleneckNeck(
+                embed_dim=self.embed_dim * self.num_frames,
+                output_embed_dim=self.output_embed_dim,
+                drop_cls_token=True,
+                Hp=self.hp,
+                Wp=self.wp,
+                bottleneck_reduction_factor=bottleneck_reduction_factor
+            )
+        else:
+            self.neck = ConvTransformerTokensToEmbeddingNeck(
+                embed_dim=self.embed_dim * self.num_frames,
+                output_embed_dim=self.output_embed_dim,
+                drop_cls_token=True,
+                Hp=self.hp,
+                Wp=self.wp,
+            )
 
         # Initialize heads and loss weights based on tiers
         self.heads = nn.ModuleDict()
@@ -282,6 +294,8 @@ class Messis(pl.LightningModule, PyTorchModelHubMixin):
             bands=hparams.get('bands'),
             backbone_weights_path=hparams.get('backbone_weights_path'),
             freeze_backbone=hparams['freeze_backbone'],
+            use_bottleneck_neck=hparams.get('use_bottleneck_neck'),
+            bottleneck_reduction_factor=hparams.get('bottleneck_reduction_factor'),
             debug=hparams.get('debug')
         )
 

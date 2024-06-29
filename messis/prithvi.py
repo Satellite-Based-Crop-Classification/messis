@@ -262,6 +262,141 @@ class ConvTransformerTokensToEmbeddingNeck(nn.Module):
         out = tuple([x])
         return out
 
+class ConvTransformerTokensToEmbeddingBottleneckNeck(nn.Module):
+    """
+    Neck that transforms the token-based output of transformer into a single embedding suitable for processing with standard layers.
+    Performs ConvTranspose2d operations with bottleneck layers to reduce channels.
+    """
+
+    def __init__(
+        self,
+        embed_dim: int,
+        output_embed_dim: int,
+        Hp: int = 14,
+        Wp: int = 14,
+        drop_cls_token: bool = True,
+        bottleneck_reduction_factor: int = 4,
+    ):
+        """
+        Args:
+            embed_dim (int): Input embedding dimension
+            output_embed_dim (int): Output embedding dimension
+            Hp (int, optional): Height (in patches) of embedding to be upscaled. Defaults to 14.
+            Wp (int, optional): Width (in patches) of embedding to be upscaled. Defaults to 14.
+            drop_cls_token (bool, optional): Whether there is a cls_token, which should be dropped. Defaults to True.
+            bottleneck_ratio (int, optional): Ratio to reduce channels in bottleneck layers. Defaults to 4.
+        """
+        super().__init__()
+        self.drop_cls_token = drop_cls_token
+        self.Hp = Hp
+        self.Wp = Wp
+        self.H_out = Hp
+        self.W_out = Wp
+
+        kernel_size = 2
+        stride = 2
+        dilation = 1
+        padding = 0
+        output_padding = 0
+        for _ in range(4):
+            self.H_out = _convTranspose2dOutput(
+                self.H_out, stride, padding, dilation, kernel_size, output_padding
+            )
+            self.W_out = _convTranspose2dOutput(
+                self.W_out, stride, padding, dilation, kernel_size, output_padding
+            )
+
+        self.embed_dim = embed_dim
+        self.output_embed_dim = output_embed_dim
+        bottleneck_dim = self.embed_dim // bottleneck_reduction_factor
+
+        self.fpn1 = nn.Sequential(
+            nn.Conv2d(
+                self.embed_dim,
+                bottleneck_dim,
+                kernel_size=1
+            ),
+            Norm2d(bottleneck_dim),
+            nn.GELU(),
+            nn.ConvTranspose2d(
+                bottleneck_dim,
+                bottleneck_dim,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+                output_padding=output_padding
+            ),
+            Norm2d(bottleneck_dim),
+            nn.GELU(),
+            nn.ConvTranspose2d(
+                bottleneck_dim,
+                bottleneck_dim,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+                output_padding=output_padding
+            ),
+            Norm2d(bottleneck_dim),
+            nn.GELU(),
+            nn.Conv2d(
+                bottleneck_dim,
+                self.output_embed_dim,
+                kernel_size=1
+            ),
+            Norm2d(self.output_embed_dim),
+            nn.GELU(),
+        )
+
+        self.fpn2 = nn.Sequential(
+            nn.Conv2d(
+                self.output_embed_dim,
+                bottleneck_dim,
+                kernel_size=1
+            ),
+            Norm2d(bottleneck_dim),
+            nn.GELU(),
+            nn.ConvTranspose2d(
+                bottleneck_dim,
+                bottleneck_dim,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+                output_padding=output_padding
+            ),
+            Norm2d(bottleneck_dim),
+            nn.GELU(),
+            nn.ConvTranspose2d(
+                bottleneck_dim,
+                bottleneck_dim,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+                output_padding=output_padding
+            ),
+            Norm2d(bottleneck_dim),
+            nn.GELU(),
+            nn.Conv2d(
+                bottleneck_dim,
+                self.output_embed_dim,
+                kernel_size=1
+            ),
+            Norm2d(self.output_embed_dim),
+            nn.GELU(),
+        )
+
+    def forward(self, x):
+        x = x[0]
+        if self.drop_cls_token:
+            x = x[:, 1:, :]
+        x = x.permute(0, 2, 1).reshape(x.shape[0], -1, self.Hp, self.Wp)
+
+        x = self.fpn1(x)
+        x = self.fpn2(x)
+
+        x = x.reshape((-1, self.output_embed_dim, self.H_out, self.W_out))
+        out = tuple([x])
+        return out
+
 class TemporalViTEncoder(nn.Module):
     """Encoder from an ViT with capability to take in temporal input.
 
