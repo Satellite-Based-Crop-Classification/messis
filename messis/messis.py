@@ -97,7 +97,7 @@ class LabelRefinementHead(nn.Module):
             nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            nn.Dropout2d(p=0.5),
+            nn.Dropout(p=0.5),
 
             # Skip connection (implemented in forward method)
             
@@ -108,7 +108,7 @@ class LabelRefinementHead(nn.Module):
             
             # 1x1 Convolutional layer to adjust the number of output channels to num_classes
             nn.Conv2d(in_channels=128, out_channels=num_classes, kernel_size=1, stride=1, padding=0),
-            nn.Dropout2d(p=0.5)
+            nn.Dropout(p=0.5)
         )
         
     def forward(self, x):
