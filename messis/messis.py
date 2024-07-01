@@ -203,8 +203,8 @@ class HierarchicalClassifier(nn.Module):
                 self.total_classes += num_classes
 
                 self.heads[head_name] = HierarchicalFCNHead(
-                    in_channels=self.output_embed_dim if head_count == 0 else self.head_channels,
-                    out_channels=self.head_channels,
+                    in_channels=(self.output_embed_dim // (2**head_count)),
+                    out_channels=(self.output_embed_dim // (2**(head_count+1))),
                     num_classes=num_classes,
                     num_convs=1,
                     kernel_size=kernel_size,
