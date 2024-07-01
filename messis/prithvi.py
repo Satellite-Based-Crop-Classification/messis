@@ -377,6 +377,7 @@ class TemporalViTEncoder(nn.Module):
         print(f"TemporalViTEncoder | Loaded pretrained weights from '{self.pretrained}' (pt file).")
 
     def _init_weights(self, m):
+        print("TemporalViTEncoder | Newly Initializing weights...")
         if isinstance(m, nn.Linear):
             # we use xavier_uniform following official JAX ViT:
             torch.nn.init.xavier_uniform_(m.weight)
