@@ -402,7 +402,7 @@ class LogConfusionMatrix(pl.Callback):
             # Update all metrics
             assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
             assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
-
+            
             for pred, target, tier in zip(preds, targets, self.tiers):
                 if self.debug:
                     print(f"Updating confusion matrix for {phase} {tier} {mode}")
@@ -668,7 +668,7 @@ class LogMessisMetrics(pl.Callback):
             # Update all metrics
             assert preds.shape == targets.shape, f"Shapes of predictions and targets do not match: {preds.shape} vs {targets.shape}"
             assert preds.shape[0] == len(self.tiers), f"Number of tiers in predictions and tiers do not match: {preds.shape[0]} vs {len(self.tiers)}"
-           
+        
             self.images_to_log[phase][mode] = preds[-1]
             
             for pred, target, tier in zip(preds, targets, self.tiers):
