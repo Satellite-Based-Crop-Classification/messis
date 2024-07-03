@@ -12,7 +12,7 @@ from lion_pytorch import Lion
 
 import json
 
-from messis.prithvi import TemporalViTEncoder, ConvTransformerTokensToEmbeddingNeck
+from messis.prithvi import TemporalViTEncoder, ConvTransformerTokensToEmbeddingNeck, ConvTransformerTokensToEmbeddingBottleneckNeck
 
 
 def safe_shape(x):
@@ -139,6 +139,8 @@ class HierarchicalClassifier(nn.Module):
             bands=[0, 1, 2, 3, 4, 5], 
             backbone_weights_path=None, 
             freeze_backbone=True, 
+            use_bottleneck_neck=False,
+            bottleneck_reduction_factor=4,
             debug=False
         ):
         super(HierarchicalClassifier, self).__init__()
@@ -175,13 +177,23 @@ class HierarchicalClassifier(nn.Module):
             param.requires_grad = not freeze_backbone
 
         # Neck to transform the token-based output of the transformer into a spatial feature map
-        self.neck = ConvTransformerTokensToEmbeddingNeck(
-            embed_dim=self.embed_dim * self.num_frames,
-            output_embed_dim=self.output_embed_dim,
-            drop_cls_token=True,
-            Hp=self.hp,
-            Wp=self.wp,
-        )
+        if use_bottleneck_neck:
+            self.neck = ConvTransformerTokensToEmbeddingBottleneckNeck(
+                embed_dim=self.embed_dim * self.num_frames,
+                output_embed_dim=self.output_embed_dim,
+                drop_cls_token=True,
+                Hp=self.hp,
+                Wp=self.wp,
+                bottleneck_reduction_factor=bottleneck_reduction_factor
+            )
+        else:
+            self.neck = ConvTransformerTokensToEmbeddingNeck(
+                embed_dim=self.embed_dim * self.num_frames,
+                output_embed_dim=self.output_embed_dim,
+                drop_cls_token=True,
+                Hp=self.hp,
+                Wp=self.wp,
+            )
 
         # Initialize heads and loss weights based on tiers
         self.heads = nn.ModuleDict()
@@ -285,6 +297,8 @@ class Messis(pl.LightningModule, PyTorchModelHubMixin):
             bands=hparams.get('bands'),
             backbone_weights_path=hparams.get('backbone_weights_path'),
             freeze_backbone=hparams['freeze_backbone'],
+            use_bottleneck_neck=hparams.get('use_bottleneck_neck'),
+            bottleneck_reduction_factor=hparams.get('bottleneck_reduction_factor'),
             debug=hparams.get('debug')
         )
 
@@ -601,7 +615,7 @@ class LogMessisMetrics(pl.Callback):
             self.dataset_info = json.load(f)
 
         # Initialize metrics
-        self.metrics_to_compute = ['accuracy', 'weighted_accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
+        self.metrics_to_compute = ['accuracy', 'weighted_accuracy', 'precision', 'weighted_precision', 'recall', 'weighted_recall' ,'f1', 'weighted_f1', 'cohen_kappa']
         self.metrics = {phase: {tier: {mode: self.__init_metrics(tier, phase) for mode in self.modes} for tier in self.tiers} for phase in self.phases}
         self.images_to_log = {phase: {mode: None for mode in self.modes} for phase in self.phases}
         self.images_to_log_targets = {phase: None for phase in self.phases}
@@ -617,8 +631,11 @@ class LogMessisMetrics(pl.Callback):
             class_index: classification.BinaryAccuracy() for class_index in range(num_classes)
         }
         precision = classification.MulticlassPrecision(num_classes=num_classes, average='macro')
+        weighted_precision = classification.MulticlassPrecision(num_classes=num_classes, average='weighted')
         recall = classification.MulticlassRecall(num_classes=num_classes, average='macro')
+        weighted_recall = classification.MulticlassRecall(num_classes=num_classes, average='weighted')
         f1 = classification.MulticlassF1Score(num_classes=num_classes, average='macro')
+        weighted_f1 = classification.MulticlassF1Score(num_classes=num_classes, average='weighted')
         cohen_kappa = classification.MulticlassCohenKappa(num_classes=num_classes)
 
         return {
@@ -626,8 +643,11 @@ class LogMessisMetrics(pl.Callback):
             'weighted_accuracy': weighted_accuracy,
             'per_class_accuracies': per_class_accuracies,
             'precision': precision,
+            'weighted_precision': weighted_precision,
             'recall': recall,
+            'weighted_recall': weighted_recall,
             'f1': f1,
+            'weighted_f1': weighted_f1,
             'cohen_kappa': cohen_kappa
         }
 
