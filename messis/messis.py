@@ -149,7 +149,7 @@ class HierarchicalClassifier(nn.Module):
         self.num_frames = num_frames
         self.output_embed_dim = self.embed_dim * self.num_frames
         self.hp, self.wp = img_size // patch_size, img_size // patch_size
-        self.head_channels = 1024 # TODO: We should research what makes sense here (same channels, gradual decrease from 1024, ...)
+        self.head_channels = 256 # TODO: We should research what makes sense here (same channels, gradual decrease from 1024, ...)
         self.heads_spec = heads_spec
         self.dropout_p = dropout_p
         self.debug = debug
@@ -215,8 +215,8 @@ class HierarchicalClassifier(nn.Module):
                 self.total_classes += num_classes
 
                 self.heads[head_name] = HierarchicalFCNHead(
-                    in_channels=(self.output_embed_dim // (2**head_count)),
-                    out_channels=(self.output_embed_dim // (2**(head_count+1))),
+                    in_channels=self.output_embed_dim if head_count == 0 else self.head_channels,
+                    out_channels=self.head_channels,
                     num_classes=num_classes,
                     num_convs=1,
                     kernel_size=kernel_size,
