@@ -84,7 +84,7 @@ class LabelRefinementHead(nn.Module):
     It takes the raw predictions from head 1, head 2 and head 3 and refines them to produce the final prediction for tier 3.
     According to ZueriCrop, this helps with making the predictions more consistent across the different tiers.
     """
-    def __init__(self, input_channels, num_classes):
+    def __init__(self, input_channels, num_classes, dropout_p=0.1):
         super(LabelRefinementHead, self).__init__()
         
         self.cnn_layers = nn.Sequential(
@@ -97,7 +97,7 @@ class LabelRefinementHead(nn.Module):
             nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            nn.Dropout(p=0.5),
+            nn.Dropout2d(p=dropout_p),
 
             # Skip connection (implemented in forward method)
             
@@ -108,7 +108,7 @@ class LabelRefinementHead(nn.Module):
             
             # 1x1 Convolutional layer to adjust the number of output channels to num_classes
             nn.Conv2d(in_channels=128, out_channels=num_classes, kernel_size=1, stride=1, padding=0),
-            nn.Dropout(p=0.5)
+            nn.Dropout2d(p=dropout_p)
         )
         
     def forward(self, x):
@@ -215,7 +215,7 @@ class HierarchicalClassifier(nn.Module):
 
             # NOTE: LabelRefinementHead must be the last in the dict, otherwise the total_classes will be incorrect
             if head_type == 'LabelRefinementHead':
-                self.refinement_head = LabelRefinementHead(input_channels=self.total_classes, num_classes=num_classes)
+                self.refinement_head = LabelRefinementHead(input_channels=self.total_classes, num_classes=num_classes, dropout_p=self.dropout_p)
                 self.refinement_head_name = head_name
                 self.loss_weights[head_name] = loss_weight
 
@@ -601,7 +601,7 @@ class LogMessisMetrics(pl.Callback):
             self.dataset_info = json.load(f)
 
         # Initialize metrics
-        self.metrics_to_compute = ['accuracy', 'weighted_accuracy', 'precision', 'recall', 'f1', 'cohen_kappa']
+        self.metrics_to_compute = ['accuracy', 'weighted_accuracy', 'precision', 'weighted_precision', 'recall', 'weighted_recall' ,'f1', 'weighted_f1', 'cohen_kappa']
         self.metrics = {phase: {tier: {mode: self.__init_metrics(tier, phase) for mode in self.modes} for tier in self.tiers} for phase in self.phases}
         self.images_to_log = {phase: {mode: None for mode in self.modes} for phase in self.phases}
         self.images_to_log_targets = {phase: None for phase in self.phases}
@@ -617,8 +617,11 @@ class LogMessisMetrics(pl.Callback):
             class_index: classification.BinaryAccuracy() for class_index in range(num_classes)
         }
         precision = classification.MulticlassPrecision(num_classes=num_classes, average='macro')
+        weighted_precision = classification.MulticlassPrecision(num_classes=num_classes, average='weighted')
         recall = classification.MulticlassRecall(num_classes=num_classes, average='macro')
+        weighted_recall = classification.MulticlassRecall(num_classes=num_classes, average='weighted')
         f1 = classification.MulticlassF1Score(num_classes=num_classes, average='macro')
+        weighted_f1 = classification.MulticlassF1Score(num_classes=num_classes, average='weighted')
         cohen_kappa = classification.MulticlassCohenKappa(num_classes=num_classes)
 
         return {
@@ -626,8 +629,11 @@ class LogMessisMetrics(pl.Callback):
             'weighted_accuracy': weighted_accuracy,
             'per_class_accuracies': per_class_accuracies,
             'precision': precision,
+            'weighted_precision': weighted_precision,
             'recall': recall,
+            'weighted_recall': weighted_recall,
             'f1': f1,
+            'weighted_f1': weighted_f1,
             'cohen_kappa': cohen_kappa
         }
 
