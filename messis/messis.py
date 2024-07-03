@@ -12,7 +12,7 @@ from lion_pytorch import Lion
 
 import json
 
-from messis.prithvi import TemporalViTEncoder, ConvTransformerTokensToEmbeddingNeck
+from messis.prithvi import TemporalViTEncoder, ConvTransformerTokensToEmbeddingNeck, ConvTransformerTokensToEmbeddingBottleneckNeck
 
 
 def safe_shape(x):
@@ -84,7 +84,7 @@ class LabelRefinementHead(nn.Module):
     It takes the raw predictions from head 1, head 2 and head 3 and refines them to produce the final prediction for tier 3.
     According to ZueriCrop, this helps with making the predictions more consistent across the different tiers.
     """
-    def __init__(self, input_channels, num_classes, dropout_p=0.1):
+    def __init__(self, input_channels, num_classes):
         super(LabelRefinementHead, self).__init__()
         
         self.cnn_layers = nn.Sequential(
@@ -97,7 +97,7 @@ class LabelRefinementHead(nn.Module):
             nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            nn.Dropout2d(p=dropout_p),
+            nn.Dropout(p=0.5),
 
             # Skip connection (implemented in forward method)
             
@@ -108,7 +108,7 @@ class LabelRefinementHead(nn.Module):
             
             # 1x1 Convolutional layer to adjust the number of output channels to num_classes
             nn.Conv2d(in_channels=128, out_channels=num_classes, kernel_size=1, stride=1, padding=0),
-            nn.Dropout2d(p=dropout_p)
+            nn.Dropout(p=0.5)
         )
         
     def forward(self, x):
@@ -139,6 +139,8 @@ class HierarchicalClassifier(nn.Module):
             bands=[0, 1, 2, 3, 4, 5], 
             backbone_weights_path=None, 
             freeze_backbone=True, 
+            use_bottleneck_neck=False,
+            bottleneck_reduction_factor=4,
             debug=False
         ):
         super(HierarchicalClassifier, self).__init__()
@@ -175,13 +177,23 @@ class HierarchicalClassifier(nn.Module):
             param.requires_grad = not freeze_backbone
 
         # Neck to transform the token-based output of the transformer into a spatial feature map
-        self.neck = ConvTransformerTokensToEmbeddingNeck(
-            embed_dim=self.embed_dim * self.num_frames,
-            output_embed_dim=self.output_embed_dim,
-            drop_cls_token=True,
-            Hp=self.hp,
-            Wp=self.wp,
-        )
+        if use_bottleneck_neck:
+            self.neck = ConvTransformerTokensToEmbeddingBottleneckNeck(
+                embed_dim=self.embed_dim * self.num_frames,
+                output_embed_dim=self.output_embed_dim,
+                drop_cls_token=True,
+                Hp=self.hp,
+                Wp=self.wp,
+                bottleneck_reduction_factor=bottleneck_reduction_factor
+            )
+        else:
+            self.neck = ConvTransformerTokensToEmbeddingNeck(
+                embed_dim=self.embed_dim * self.num_frames,
+                output_embed_dim=self.output_embed_dim,
+                drop_cls_token=True,
+                Hp=self.hp,
+                Wp=self.wp,
+            )
 
         # Initialize heads and loss weights based on tiers
         self.heads = nn.ModuleDict()
@@ -215,7 +227,7 @@ class HierarchicalClassifier(nn.Module):
 
             # NOTE: LabelRefinementHead must be the last in the dict, otherwise the total_classes will be incorrect
             if head_type == 'LabelRefinementHead':
-                self.refinement_head = LabelRefinementHead(input_channels=self.total_classes, num_classes=num_classes, dropout_p=self.dropout_p)
+                self.refinement_head = LabelRefinementHead(input_channels=self.total_classes, num_classes=num_classes)
                 self.refinement_head_name = head_name
                 self.loss_weights[head_name] = loss_weight
 
@@ -285,6 +297,8 @@ class Messis(pl.LightningModule, PyTorchModelHubMixin):
             bands=hparams.get('bands'),
             backbone_weights_path=hparams.get('backbone_weights_path'),
             freeze_backbone=hparams['freeze_backbone'],
+            use_bottleneck_neck=hparams.get('use_bottleneck_neck'),
+            bottleneck_reduction_factor=hparams.get('bottleneck_reduction_factor'),
             debug=hparams.get('debug')
         )
 
