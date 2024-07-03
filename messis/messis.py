@@ -198,6 +198,8 @@ class HierarchicalClassifier(nn.Module):
             if head_type == 'HierarchicalFCNHead':
                 num_classes = head_info['num_classes_to_predict']
                 loss_weight = head_info['loss_weight']
+                kernel_size = head_info.get('kernel_size', 3)
+                print(f"The KeRnEl size is: {kernel_size}")
                 self.total_classes += num_classes
 
                 self.heads[head_name] = HierarchicalFCNHead(
@@ -205,6 +207,7 @@ class HierarchicalClassifier(nn.Module):
                     out_channels=self.head_channels,
                     num_classes=num_classes,
                     num_convs=1,
+                    kernel_size=kernel_size,
                     dropout_p=self.dropout_p,
                     debug=self.debug
                 )
