@@ -198,6 +198,8 @@ class HierarchicalClassifier(nn.Module):
             if head_type == 'HierarchicalFCNHead':
                 num_classes = head_info['num_classes_to_predict']
                 loss_weight = head_info['loss_weight']
+                kernel_size = head_info.get('kernel_size', 3)
+                print(f"The KeRnEl size is: {kernel_size}")
                 self.total_classes += num_classes
 
                 self.heads[head_name] = HierarchicalFCNHead(
@@ -205,6 +207,7 @@ class HierarchicalClassifier(nn.Module):
                     out_channels=self.head_channels,
                     num_classes=num_classes,
                     num_convs=1,
+                    kernel_size=kernel_size,
                     dropout_p=self.dropout_p,
                     debug=self.debug
                 )
@@ -399,7 +402,7 @@ class LogConfusionMatrix(pl.Callback):
             # Update all metrics
             assert len(preds) == len(targets), f"Number of predictions and targets do not match: {len(preds)} vs {len(targets)}"
             assert len(preds) == len(self.tiers), f"Number of predictions and tiers do not match: {len(preds)} vs {len(self.tiers)}"
-
+            
             for pred, target, tier in zip(preds, targets, self.tiers):
                 if self.debug:
                     print(f"Updating confusion matrix for {phase} {tier} {mode}")
@@ -671,7 +674,7 @@ class LogMessisMetrics(pl.Callback):
             # Update all metrics
             assert preds.shape == targets.shape, f"Shapes of predictions and targets do not match: {preds.shape} vs {targets.shape}"
             assert preds.shape[0] == len(self.tiers), f"Number of tiers in predictions and tiers do not match: {preds.shape[0]} vs {len(self.tiers)}"
-           
+        
             self.images_to_log[phase][mode] = preds[-1]
             
             for pred, target, tier in zip(preds, targets, self.tiers):
