@@ -35,6 +35,7 @@ python-dotenv = "^1.0.1"
 safetensors = "^0.4.3"
 transformers = "^4.41.2"
 lion-pytorch = "^0.2.2"
+torchview = "^0.2.6"
 
 
 [tool.poetry.group.dev.dependencies]
