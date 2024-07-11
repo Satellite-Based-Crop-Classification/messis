@@ -202,8 +202,6 @@ class GeospatialDataset(Dataset):
         img = self.transform_img_load(img)
         mask = self.transform_mask_load(mask)
         field_ids = self.transform_field_ids_load(field_ids)
-        
-        print(f"Image shape: {img.shape}, mask shape: {mask.shape}, field_ids shape: {field_ids.shape}")
 
         # Apply additional transforms passed from GeospatialDataModule if applicable
         if self.transform_img is not None:
