@@ -2288,6 +2288,20 @@ yaml = ["PyYAML (>=3.10)"]
 zookeeper = ["kazoo (>=2.8.0)"]
 
 [[package]]
+name = "latextable"
+version = "1.0.1"
+description = "An extension to the texttable library that exports tables directly to Latex."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "latextable-1.0.1-py3-none-any.whl", hash = "sha256:3c2db035574f36ef95ed8e2ccf32d37c2f534b6f2701022c5e00f159244b8306"},
+    {file = "latextable-1.0.1.tar.gz", hash = "sha256:e0d5e426f65e06c39d4b16441f027e435393bf11b40151a3aab3c706576d9ce9"},
+]
+
+[package.dependencies]
+texttable = "*"
+
+[[package]]
 name = "lightning"
 version = "2.2.5"
 description = "The Deep Learning framework to train, deploy, and ship AI products Lightning fast."
@@ -5157,6 +5171,17 @@ doc = ["reno", "sphinx"]
 test = ["pytest", "tornado (>=4.5)", "typeguard"]
 
 [[package]]
+name = "texttable"
+version = "1.7.0"
+description = "module to create simple ASCII tables"
+optional = false
+python-versions = "*"
+files = [
+    {file = "texttable-1.7.0-py2.py3-none-any.whl", hash = "sha256:72227d592c82b3d7f672731ae73e4d1f88cd8e2ef5b075a7a7f01a23a3743917"},
+    {file = "texttable-1.7.0.tar.gz", hash = "sha256:2d2068fb55115807d3ac77a4ca68fa48803e84ebb0ee2340f858107a36522638"},
+]
+
+[[package]]
 name = "timm"
 version = "0.9.16"
 description = "PyTorch Image Models"
@@ -5892,4 +5917,4 @@ test = ["zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.12"
-content-hash = "bd75d07fb6e3e799bc5c124877eba0681dda9c1f2445210c30019a8d2da1ff53"
+content-hash = "d2e2817710acc09da421ae95e2960cf307d7651acf0a0aae7decb7d96756f546"
