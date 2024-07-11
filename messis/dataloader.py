@@ -68,6 +68,10 @@ class RandomFlipAndJitterTransform:
 
     def __call__(self, img, mask, field_ids):
         # Shapes (..., H, W)| img: torch.Size([6, 3, 224, 224]), mask: torch.Size([3, 224, 224]), field_ids: torch.Size([1, 224, 224])
+        
+        # Temporarily convert field_ids to int32 for flipping (flip not implemented for uint16)
+        field_ids = field_ids.to(torch.int32)
+
         # Random horizontal flip
         if random.random() < self.flip_prob:
             img = torch.flip(img, [2])
@@ -79,6 +83,9 @@ class RandomFlipAndJitterTransform:
             img = torch.flip(img, [3])
             mask = torch.flip(mask, [2])
             field_ids = torch.flip(field_ids, [2])
+
+        # Convert field_ids back to uint16
+        field_ids = field_ids.to(torch.uint16)
 
         # Channel jitter
         noise = torch.randn(img.size()) * self.jitter_std
