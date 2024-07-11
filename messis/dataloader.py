@@ -67,15 +67,16 @@ class RandomFlipAndJitterTransform:
         self.jitter_std = jitter_std
 
     def __call__(self, img, mask, field_ids):
+        # Shapes (..., H, W)| img: torch.Size([6, 3, 224, 224]), mask: torch.Size([3, 224, 224]), field_ids: torch.Size([1, 224, 224])
         # Random horizontal flip
         if random.random() < self.flip_prob:
-            img = torch.flip(img, [3]) # Shape is ?
-            mask = torch.flip(mask, [1]) # Shape is ?
+            img = torch.flip(img, [2])
+            mask = torch.flip(mask, [1])
             field_ids = torch.flip(field_ids, [1])
 
         # Random vertical flip
         if random.random() < self.flip_prob:
-            img = torch.flip(img, [2])
+            img = torch.flip(img, [3])
             mask = torch.flip(mask, [2])
             field_ids = torch.flip(field_ids, [2])
 
@@ -207,7 +208,7 @@ class GeospatialDataset(Dataset):
 
         # Apply data augmentation if enabled
         if self.data_augmentation is not None and self.data_augmentation.get('enabled', True):
-            img, mask = RandomFlipAndJitterTransform(
+            img, mask, field_ids = RandomFlipAndJitterTransform(
                 flip_prob=self.data_augmentation.get('flip_prob', 0.5), 
                 jitter_std=self.data_augmentation.get('jitter_std', 0.02)
             )(img, mask, field_ids)
