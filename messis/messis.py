@@ -279,9 +279,11 @@ class HierarchicalClassifier(nn.Module):
             if self.debug:
                 print(f"Target index for {head_name}: {self.heads_spec[head_name]['target_idx']}")
             target = targets[self.heads_spec[head_name]['target_idx']]
+            loss_target = target
             if self.loss_ignore_background:
-                target[target == 0] = -1  # Set background class to ignore_index -1 for loss calculation
-            loss = self.loss_func(output, target)
+                loss_target = target.clone()  # Clone as original target needed in backward pass
+                loss_target[loss_target == 0] = -1  # Set background class to ignore_index -1 for loss calculation
+            loss = self.loss_func(output, loss_target)
             loss_per_head[f'{head_name}'] = loss
             total_loss += loss * self.loss_weights[head_name]
         
