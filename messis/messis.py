@@ -141,6 +141,7 @@ class HierarchicalClassifier(nn.Module):
             freeze_backbone=True, 
             use_bottleneck_neck=False,
             bottleneck_reduction_factor=4,
+            loss_ignore_background=False,
             debug=False
         ):
         super(HierarchicalClassifier, self).__init__()
@@ -152,6 +153,7 @@ class HierarchicalClassifier(nn.Module):
         self.head_channels = 256 # TODO: We should research what makes sense here (same channels, gradual decrease from 1024, ...)
         self.heads_spec = heads_spec
         self.dropout_p = dropout_p
+        self.loss_ignore_background = loss_ignore_background
         self.debug = debug
 
         if self.debug:
@@ -233,7 +235,7 @@ class HierarchicalClassifier(nn.Module):
 
             head_count += 1
 
-        self.loss_func = nn.CrossEntropyLoss()
+        self.loss_func = nn.CrossEntropyLoss(ignore_index=-1)
 
     def forward(self, x):
         # Extract features from the base model
@@ -277,6 +279,8 @@ class HierarchicalClassifier(nn.Module):
             if self.debug:
                 print(f"Target index for {head_name}: {self.heads_spec[head_name]['target_idx']}")
             target = targets[self.heads_spec[head_name]['target_idx']]
+            if self.loss_ignore_background:
+                target[target == 0] = -1  # Set background class to ignore_index -1 for loss calculation
             loss = self.loss_func(output, target)
             loss_per_head[f'{head_name}'] = loss
             total_loss += loss * self.loss_weights[head_name]
@@ -299,6 +303,7 @@ class Messis(pl.LightningModule, PyTorchModelHubMixin):
             freeze_backbone=hparams['freeze_backbone'],
             use_bottleneck_neck=hparams.get('use_bottleneck_neck'),
             bottleneck_reduction_factor=hparams.get('bottleneck_reduction_factor'),
+            loss_ignore_background=hparams.get('loss_ignore_background'),
             debug=hparams.get('debug')
         )
 
