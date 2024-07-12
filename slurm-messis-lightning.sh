@@ -4,8 +4,8 @@
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks-per-node=1   # This needs to match Trainer(devices=...)
 #SBATCH --partition=performance
-#SBATCH --out=logs/slurm/model_training.ipynb_out.txt
-#SBATCH --err=logs/slurm/model_training.ipynb_out.txt
+#SBATCH --out=logs/slurm/model_training_not_aug.ipynb_out.txt
+#SBATCH --err=logs/slurm/model_training_not_aug.ipynb_out.txt
 #SBATCH --job-name="messis"
 # To exclude: SBATCH --exclude=gpu22a
 
