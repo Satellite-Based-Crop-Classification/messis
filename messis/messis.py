@@ -325,7 +325,7 @@ class Messis(pl.LightningModule, PyTorchModelHubMixin):
                 optimizer = torch.optim.SGD(self.parameters(), lr=self.hparams.get('lr', 1e-3), momentum=self.hparams.get('optimizer_momentum', 0.9))
             case 'Lion':
                 # https://github.com/lucidrains/lion-pytorch | Typically lr 3-10 times lower than Adam and weight_decay 3-10 times higher
-                optimizer = Lion(self.parameters(), lr=self.hparams.get('lr', 1e-3))
+                optimizer = Lion(self.parameters(), lr=self.hparams.get('lr', 1e-4), weight_decay=self.hparams.get('optimizer_weight_decay', 0.1))
             case _:
                 raise ValueError(f"Optimizer {self.hparams.get('optimizer')} not supported")
         return optimizer
