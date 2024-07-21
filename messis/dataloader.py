@@ -3,7 +3,6 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from pytorch_lightning import LightningDataModule
-
 import os
 import re
 import yaml
@@ -36,18 +35,72 @@ class PermuteTransform:
         data = data.view(3, 6, height, width)
         
         # Step 2: Permute to bring the bands to the front
-        data = data.permute(1, 0, 2, 3)  # NOTE: Prithvi wants it bands first
+        data = data.permute(1, 0, 2, 3)  # NOTE: Prithvi wants it bands first # after this, shape is (6, 3, height, width)
         return data
-    
+
+class RandomFlipAndJitterTransform:
+    """
+    Apply random horizontal and vertical flips, and channel jitter to the input image and corresponding mask.
+
+    Parameters:
+    -----------
+    flip_prob : float, optional (default=0.5)
+        Probability of applying horizontal and vertical flips to the image and mask.
+        Each flip (horizontal and vertical) is applied independently based on this probability.
+
+    jitter_std : float, optional (default=0.02)
+        Standard deviation of the Gaussian noise added to the image channels for jitter.
+        This value controls the intensity of the random noise applied to the image channels.
+
+    Effects of Parameters:
+    ----------------------
+    flip_prob:
+        - Higher flip_prob increases the likelihood of the image and mask being flipped.
+        - A value of 0 means no flipping, while a value of 1 means always flip.
+
+    jitter_std:
+        - Higher jitter_std increases the intensity of the noise added to the image channels.
+        - A value of 0 means no noise, while larger values add more significant noise.
+    """
+    def __init__(self, flip_prob=0.5, jitter_std=0.02):
+        self.flip_prob = flip_prob
+        self.jitter_std = jitter_std
+
+    def __call__(self, img, mask, field_ids):
+        # Shapes (..., H, W)| img: torch.Size([6, 3, 224, 224]), mask: torch.Size([3, 224, 224]), field_ids: torch.Size([1, 224, 224])
+        
+        # Temporarily convert field_ids to int32 for flipping (flip not implemented for uint16)
+        field_ids = field_ids.to(torch.int32)
+
+        # Random horizontal flip
+        if random.random() < self.flip_prob:
+            img = torch.flip(img, [2])
+            mask = torch.flip(mask, [1])
+            field_ids = torch.flip(field_ids, [1])
+
+        # Random vertical flip
+        if random.random() < self.flip_prob:
+            img = torch.flip(img, [3])
+            mask = torch.flip(mask, [2])
+            field_ids = torch.flip(field_ids, [2])
+
+        # Convert field_ids back to uint16
+        field_ids = field_ids.to(torch.uint16)
+
+        # Channel jitter
+        noise = torch.randn(img.size()) * self.jitter_std
+        img += noise
+
+        return img, mask, field_ids
+
 def get_img_transforms():
-    # TODO: Think about possible data augmentation techniques that could work for our data
     return transforms.Compose([])
 
 def get_mask_transforms():
     return transforms.Compose([])
 
 class GeospatialDataset(Dataset):
-    def __init__(self, data_dir, fold_indicies, transform_img=None, transform_mask=None, transform_field_ids=None, debug=False, subset_size=None):
+    def __init__(self, data_dir, fold_indicies, transform_img=None, transform_mask=None, transform_field_ids=None, debug=False, subset_size=None, data_augmentation=None):
         self.data_dir = data_dir
         self.chips_dir = os.path.join(data_dir, 'chips')
         self.transform_img = transform_img
@@ -57,6 +110,7 @@ class GeospatialDataset(Dataset):
         self.images = []
         self.masks = []
         self.field_ids = []
+        self.data_augmentation = data_augmentation
 
         self.means, self.stds = self.load_stats(fold_indicies, 3) # Hardcoded 3 timesteps for now
         self.transform_img_load = self.get_img_load_transforms(self.means, self.stds)
@@ -148,14 +202,21 @@ class GeospatialDataset(Dataset):
         img = self.transform_img_load(img)
         mask = self.transform_mask_load(mask)
         field_ids = self.transform_field_ids_load(field_ids)
-        
-        # Apply additional transforms passed from module if applicable
+
+        # Apply additional transforms passed from GeospatialDataModule if applicable
         if self.transform_img is not None:
             img = self.transform_img(img)
         if self.transform_mask is not None:
             mask = self.transform_mask(mask)
         if self.transform_field_ids is not None:
             field_ids = self.transform_field_ids(field_ids)
+
+        # Apply data augmentation if enabled
+        if self.data_augmentation is not None and self.data_augmentation.get('enabled', True):
+            img, mask, field_ids = RandomFlipAndJitterTransform(
+                flip_prob=self.data_augmentation.get('flip_prob', 0.5), 
+                jitter_std=self.data_augmentation.get('jitter_std', 0.02)
+            )(img, mask, field_ids)
 
         # Load targets for given tiers
         num_tiers = mask.shape[0]
@@ -166,13 +227,14 @@ class GeospatialDataset(Dataset):
         return img, (targets, field_ids)
 
 class GeospatialDataModule(LightningDataModule):
-    def __init__(self, data_dir, train_folds, val_folds, test_folds, batch_size=8, num_workers=4, debug=False, subsets=None):
+    def __init__(self, data_dir, train_folds, val_folds, test_folds, batch_size=8, num_workers=4, debug=False, subsets=None, data_augmentation=None):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.debug = debug
         self.subsets = subsets if subsets is not None else {}
+        self.data_augmentation = data_augmentation if data_augmentation is not None else {}
         
         GeospatialDataModule.validate_folds(train_folds, val_folds, test_folds)
         self.train_folds = train_folds
@@ -192,9 +254,11 @@ class GeospatialDataModule(LightningDataModule):
             raise ValueError("Folds must be mutually exclusive")
 
     def setup(self, stage=None):
+        print(f"Setting up GeospatialDataModule for stage: {stage}. Data augmentation config: {self.data_augmentation}")
         common_params = {
             'data_dir': self.data_dir,
             'debug': self.debug,
+            'data_augmentation': self.data_augmentation
         }
         if stage in ('fit', None):
             self.train_dataset = GeospatialDataset(fold_indicies=self.train_folds, subset_size=self.subsets.get('train', None), **common_params)
