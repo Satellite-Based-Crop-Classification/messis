@@ -7,6 +7,11 @@ import os
 import re
 import yaml
 import rasterio
+import dvc.api
+
+
+params = dvc.api.params_show()
+N_TIMESTEPS = params['number_of_timesteps']
 
 class ToTensorTransform(object):
     def __init__(self, dtype):
@@ -28,14 +33,14 @@ class PermuteTransform:
         height, width = data.shape[-2:]
 
         # Ensure the channel dimension is as expected
-        if data.shape[0] != 18:
-            raise ValueError(f"Expected 18 channels, got {data.shape[1]}")
+        if data.shape[0] != N_TIMESTEPS * 6:
+            raise ValueError(f"Expected {N_TIMESTEPS*6} channels, got {data.shape[1]}")
         
-        # Step 1: Reshape the data to group the 18 bands into 3 groups of 6 bands
-        data = data.view(3, 6, height, width)
+        # Step 1: Reshape the data to group the N_TIMESTEPS*6 bands into N_TIMESTEPS groups of 6 bands
+        data = data.view(N_TIMESTEPS, 6, height, width)
         
         # Step 2: Permute to bring the bands to the front
-        data = data.permute(1, 0, 2, 3)  # NOTE: Prithvi wants it bands first # after this, shape is (6, 3, height, width)
+        data = data.permute(1, 0, 2, 3)  # NOTE: Prithvi wants it bands first # after this, shape is (6, N_TIMESTEPS, height, width)
         return data
 
 class RandomFlipAndJitterTransform:
@@ -67,7 +72,7 @@ class RandomFlipAndJitterTransform:
         self.jitter_std = jitter_std
 
     def __call__(self, img, mask, field_ids):
-        # Shapes (..., H, W)| img: torch.Size([6, 3, 224, 224]), mask: torch.Size([3, 224, 224]), field_ids: torch.Size([1, 224, 224])
+        # Shapes (..., H, W)| img: torch.Size([6, N_TIMESTEPS, 224, 224]), mask: torch.Size([N_TIMESTEPS, 224, 224]), field_ids: torch.Size([1, 224, 224])
         
         # Temporarily convert field_ids to int32 for flipping (flip not implemented for uint16)
         field_ids = field_ids.to(torch.int32)
@@ -112,7 +117,7 @@ class GeospatialDataset(Dataset):
         self.field_ids = []
         self.data_augmentation = data_augmentation
 
-        self.means, self.stds = self.load_stats(fold_indicies, 3) # Hardcoded 3 timesteps for now
+        self.means, self.stds = self.load_stats(fold_indicies, N_TIMESTEPS)
         self.transform_img_load = self.get_img_load_transforms(self.means, self.stds)
         self.transform_mask_load = self.get_mask_load_transforms()
         self.transform_field_ids_load = self.get_field_ids_load_transforms()
