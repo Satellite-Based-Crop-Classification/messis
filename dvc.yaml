@@ -7,6 +7,7 @@ stages:
     - paths.satellite
     - zueri_crop.bbox
     - search_dates
+    - number_of_timesteps
     outs:
     - data/satellite
 
