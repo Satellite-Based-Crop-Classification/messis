@@ -1,7 +1,7 @@
 chip_size: 224
 number_of_folds: 6
 fold_split_mode: 'stratified' # either 'band', 'stratified', 'random', or 'sechidis'
-label_hierarchy_definition: 'zueri_crop' # either 'zueri_crop' (the one used in ZueriCrop paper) or 'seasonality'
+label_hierarchy_definition: 'seasonality' # either 'seasonality' (the one used in ZueriCrop paper) or 'seasonality'
 distribution_transform_mode: None # either None, 'sqrt' or 'log'
 search_dates: '2019-05-01T00:00:00.000Z/2019-09-01T00:00:00.000Z'
 max_cloud_cover: 5
