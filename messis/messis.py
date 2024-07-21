@@ -241,8 +241,7 @@ class HierarchicalClassifier(nn.Module):
 
     def forward(self, x):
         if self.debug:
-            print(f"x type: {x.dtype}")
-            print(f"x shape: {safe_shape(x)}") # torch.Size([4, 6, 9, 224, 224])
+            print(f"Input shape: {safe_shape(x)}") # torch.Size([4, 6, 9, 224, 224])
 
         # Extract features from the base model
         if len(self.necks) == 1:
@@ -252,20 +251,20 @@ class HierarchicalClassifier(nn.Module):
         features = [self.prithvi(x) for x in features]
 
         if self.debug:
-            print(f"Features shape after base model: {', '.join([f'features[{i}]: {safe_shape(features[i])}' for i in range(len(features))])}")
+            print(f"Features shape after base model: {', '.join([safe_shape(f) for f in features])}") # (tuple) : torch.Size([4, 589, 768]), , (tuple) : torch.Size
 
         # Process through the neck
         features = [neck(feat_) for feat_, neck in zip(features, self.necks)]
 
         if self.debug:
-            print(f"Features shape after neck: {', '.join([f'features[{i}]: {safe_shape(features[i])}' for i in range(len(features))])}") # 'features[0]: (tuple) : torch.Size([1, 2304, 224, 224]), , features[1]: ...
+            print(f"Features shape after neck: {', '.join([safe_shape(f) for f in features])}") # (tuple) : torch.Size([4, 2304, 224, 224]), , (tuple) : torch.Size
 
         # Remove from tuple
         features = [feat[0] for feat in features]
-        # stack the features to create a tensor of torch.Size([1, 6912, 224, 224])
+        # stack the features to create a tensor of torch.Size([4, 6912, 224, 224])
         features = torch.concatenate(features, dim=1)
         if self.debug:
-            print(f"Features shape after removing tuple: {safe_shape(features)}") # torch.Size([1, 6912, 224, 224])
+            print(f"Features shape after removing tuple: {safe_shape(features)}") # torch.Size([4, 6912, 224, 224])
 
         # Process through the heads
         outputs = {}
