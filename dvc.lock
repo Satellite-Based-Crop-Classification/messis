@@ -56,8 +56,8 @@ stages:
       size: 5970
     - path: data/labels_hierarchy_seasonality.csv
       hash: md5
-      md5: 4f1a4ad3fc291a08be634ce467014dfc
-      size: 3813
+      md5: 3d56e92b819e907f3384a12f172390f1
+      size: 11673
     - path: data/satellite
       hash: md5
       md5: d1fe4038884990085f2fb94032b51bb1.dir
