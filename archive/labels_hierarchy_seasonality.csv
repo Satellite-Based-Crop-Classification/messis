@@ -1,49 +1,49 @@
-tier_1,tier_2,tier_3,pixel_count,label_slug,label_slugs_orig,lnf_codes,lnf_descriptions
-Vegetation,AnnualCrop,SummerBarley,4210.0,Vegetation_AnnualCrop_SummerBarley,['Vegetation_Field crops_SmallGrainCereal_SummerBarley'],[501],['Sommergerste']
-Vegetation,PerennialCrop,WinterBarley,292885.0,Vegetation_PerennialCrop_WinterBarley,['Vegetation_Field crops_SmallGrainCereal_WinterBarley'],[502],['Wintergerste']
-Vegetation,PerennialCrop,Oats,17895.0,Vegetation_PerennialCrop_Oats,['Vegetation_Field crops_SmallGrainCereal_Oat'],[504],['Hafer']
-Vegetation,PerennialCrop,Triticale,97948.0,Vegetation_PerennialCrop_Triticale,['Vegetation_Field crops_SmallGrainCereal_Wheat'],[505],['Triticale']
-Vegetation,PerennialCrop,CerealMix,4677.0,Vegetation_PerennialCrop_CerealMix,['Vegetation_Field crops_SmallGrainCereal_Grain'],[506],['Mischel Futtergetreide']
-Vegetation,PerennialCrop,FodderCereals,97948.0,Vegetation_PerennialCrop_FodderCereals,['Vegetation_Field crops_SmallGrainCereal_Wheat'],[507],['Futterweizen gemäss Sortenliste swiss granum']
-Vegetation,AnnualCrop,Maize,809566.0,Vegetation_AnnualCrop_Maize,['Vegetation_Field crops_LargeGrainCereal_Maize'],[508],['Körnermais']
-Vegetation,AnnualCrop,Rice,,Vegetation_AnnualCrop_Rice,[nan],[509],['Reis']
-Vegetation,AnnualCrop,HardWheat,,Vegetation_AnnualCrop_HardWheat,[nan],[510],['Hartweizen']
-Vegetation,AnnualCrop,EinkornWheat,12525.0,Vegetation_AnnualCrop_EinkornWheat,['Vegetation_Field crops_SmallGrainCereal_EinkornWheat'],[511],"['Emmer, Einkorn']"
-Vegetation,AnnualCrop,SummerWheat,11065.0,Vegetation_AnnualCrop_SummerWheat,['Vegetation_Field crops_SmallGrainCereal_SummerWheat'],[512],['Sommerweizen (ohne Futterweizen der Sortenliste swiss granum)']
-Vegetation,PerennialCrop,WinterWheat,837126.0,Vegetation_PerennialCrop_WinterWheat,['Vegetation_Field crops_SmallGrainCereal_WinterWheat'],[513],['Winterweizen (ohne Futterweizen der Sortenliste swiss granum)']
-Vegetation,PerennialCrop,Rye,10602.0,Vegetation_PerennialCrop_Rye,['Vegetation_Field crops_SmallGrainCereal_Rye'],[514],['Roggen']
-Vegetation,PerennialCrop,Spelt,56321.0,Vegetation_PerennialCrop_Spelt,['Vegetation_Field crops_SmallGrainCereal_Spelt'],[516],['Dinkel']
-Vegetation,AnnualCrop,DryRice,,Vegetation_AnnualCrop_DryRice,[nan],[520],['Trockenreis']
-Vegetation,PerennialCrop,SugarBeet,296642.0,Vegetation_PerennialCrop_SugarBeet,"['Vegetation_Field crops_BroadLeafRowCrop_Sugar_beets', 'Vegetation_Field crops_BroadLeafRowCrop_Beets']","[522, 523]","['Zuckerrüben', 'Futterrüben']"
-Vegetation,AnnualCrop,Potatoes,110835.0,Vegetation_AnnualCrop_Potatoes,['Vegetation_Field crops_BroadLeafRowCrop_Potatoes'],[524],['Kartoffeln']
-Vegetation,AnnualCrop,SummerRapeseed,,Vegetation_AnnualCrop_SummerRapeseed,"['Vegetation_Field crops_BroadLeafRowCrop_SummerRapeseed', nan]","[526, 590]","['Sommerraps zur Speiseölgewinnung', 'Sommerraps als nachwachsender Rohstoff']"
-Vegetation,PerennialCrop,WinterRapeseed,219773.0,Vegetation_PerennialCrop_WinterRapeseed,['Vegetation_Field crops_BroadLeafRowCrop_WinterRapeseed'],[527],['Winterraps zur Speiseölgewinnung']
-Vegetation,AnnualCrop,Soybeans,25544.0,Vegetation_AnnualCrop_Soybeans,['Vegetation_Field crops_BroadLeafRowCrop_Soy'],[528],['Soja']
-Vegetation,AnnualCrop,WetRice,,Vegetation_AnnualCrop_WetRice,[nan],[529],['Nassreis']
-Vegetation,AnnualCrop,Sunflowers,70232.0,Vegetation_AnnualCrop_Sunflowers,['Vegetation_Field crops_BroadLeafRowCrop_Sunflowers'],[531],['Sonnenblumen zur Speiseölgewinnung']
-Vegetation,AnnualCrop,SpecialCultureAnnual,,Vegetation_AnnualCrop_SpecialCultureAnnual,"['Vegetation_Field crops_BroadLeafRowCrop_Linen', 'Vegetation_Field crops_VegetableCrop_Pumpkin', 'Vegetation_Field crops_VegetableCrop_Vegetables', 'Vegetation_Field crops_VegetableCrop_Chicory', 'Vegetation_Special crops_Berries_Berries', nan, 'Vegetation_Field crops_BroadLeafRowCrop_Legumes']","[534, 539, 546, 547, 551, 552, 631]","['Lein', 'Ölkürbisse', 'Freiland-Konservengemüse', 'Wurzeln der Treibzichorie', 'Einjährige Beeren (z.B. Erdbeeren)', 'Einjährige nachwachsende Rohstoffe (Kenaf, usw.)', 'Futterleguminosen für die Samenproduktion (Vertragsanbau)']"
-Vegetation,AnnualCrop,Hemp,,Vegetation_AnnualCrop_Hemp,"['Vegetation_Field crops_BroadLeafRowCrop_Hemp', nan]","[535, 575]","['Hanf', 'Hanf zur Nutzung der Samen']"
-Vegetation,AnnualCrop,BroadBeans,11369.0,Vegetation_AnnualCrop_BroadBeans,['Vegetation_Field crops_BroadLeafRowCrop_Field bean'],[536],['Bohnen und Wicken zur Körnergewinnung (z.B. Ackerbohnen) ']
-Vegetation,AnnualCrop,ProteinPeas,22732.0,Vegetation_AnnualCrop_ProteinPeas,['Vegetation_Field crops_BroadLeafRowCrop_Peas'],[537],['Erbsen zur Körnergewinnung (z.B. Eiweisserbsen)']
-Vegetation,AnnualCrop,Lupines,308.0,Vegetation_AnnualCrop_Lupines,['Vegetation_Field crops_BroadLeafRowCrop_Lupine'],[538],['Lupinen']
-Vegetation,AnnualCrop,Chickpeas,,Vegetation_AnnualCrop_Chickpeas,[nan],[540],['Kichererbsen']
-Vegetation,AnnualCrop,Tobacco,1788.0,Vegetation_AnnualCrop_Tobacco,['Vegetation_Field crops_BroadLeafRowCrop_Tobacco'],[541],['Tabak']
-Vegetation,AnnualCrop,Millet,,Vegetation_AnnualCrop_Millet,"['Vegetation_Field crops_LargeGrainCereal_Sorghum', nan]","[542, 578]","['Hirse', 'Hirse zur Körnergewinnung']"
-Vegetation,AnnualCrop,SiloCereals,4677.0,Vegetation_AnnualCrop_SiloCereals,['Vegetation_Field crops_SmallGrainCereal_Grain'],[543],['Getreide siliert']
-Vegetation,AnnualCrop,Camelina,3126.0,Vegetation_AnnualCrop_Camelina,['Vegetation_Field crops_BroadLeafRowCrop_Linen'],[544],['Leindotter']
-Vegetation,AnnualCrop,Vegetables,188621.0,Vegetation_AnnualCrop_Vegetables,['Vegetation_Field crops_VegetableCrop_Vegetables'],[545],"['Einjährige Freilandgemüse, ohne Konservengemüse']"
-Vegetation,AnnualCrop,Buckwheat,1708.0,Vegetation_AnnualCrop_Buckwheat,['Vegetation_Field crops_SmallGrainCereal_Buckwheat'],[548],['Buchweizen']
-Vegetation,AnnualCrop,Sorghum,,Vegetation_AnnualCrop_Sorghum,"['Vegetation_Field crops_LargeGrainCereal_Sorghum', nan]","[549, 580]","['Sorghum', 'Sorghum zur Körnergewinnung']"
-nan,,,,nan,"[nan, 'Vegetation_Forest_Forest_Forest']","[550, 901]","['Übrige Ackerfläche', 'Wald']"
-Vegetation,Permaculture,Grassland,,Vegetation_Permaculture_Grassland,"['Vegetation_Grassland_BiodiversityArea_Biodiversity encouragement area', 'Vegetation_Special crops_Fallow_Fallow', nan, 'Vegetation_Grassland_Meadow_Meadow', 'Vegetation_Grassland_Pasture_Pasture']","[555, 556, 559, 601, 616]","['Ackerschonstreifen', 'Buntbrache', 'Saum auf Ackerflächen', 'Kunstwiesen (ohne Weiden)', 'Weiden (Heimweiden, übrige Weiden ohne Sömmerungsweiden)']"
-Vegetation,AnnualCrop,Poppy,,Vegetation_AnnualCrop_Poppy,[nan],[566],['Mohn']
-Vegetation,AnnualCrop,Safflower,,Vegetation_AnnualCrop_Safflower,[nan],[567],['Saflor']
-Vegetation,AnnualCrop,Lentils,,Vegetation_AnnualCrop_Lentils,[nan],[568],['Linsen']
-Vegetation,AnnualCrop,CropMix,,Vegetation_AnnualCrop_CropMix,"['Vegetation_Field crops_CropMix_MixedCrop', nan]","[569, 570]","['Mischungen von Bohnen, Wicken, Erbsen, Kichererbsen und Lupinen mit Getreide oder Leindotter, mindestens 30 % Anteil Leguminosen bei der Ernte (zur Körnergewinnung)', 'Mischungen von Linsen mit Getreide oder Leindotter, mindestens 30 % Anteil Linsen bei der Ernte (zur Körnergewinnung)']"
-Vegetation,AnnualCrop,Mustard,174.0,Vegetation_AnnualCrop_Mustard,['Vegetation_Field crops_BroadLeafRowCrop_Mustard'],[573],['Senf']
-Vegetation,AnnualCrop,Quinoa,,Vegetation_AnnualCrop_Quinoa,[nan],[574],['Quinoa']
-Vegetation,Permaculture,Vines,56337.0,Vegetation_Permaculture_Vines,['Vegetation_Orchards_OrchardCrop_Vines'],[701],['Reben']
-Vegetation,Permaculture,Orchards,,Vegetation_Permaculture_Orchards,"['Vegetation_Orchards_OrchardCrop_Apples', 'Vegetation_Orchards_OrchardCrop_Pears', 'Vegetation_Orchards_OrchardCrop_StoneFruit', nan, 'Vegetation_Orchards_OrchardCrop_Vines']","[702, 703, 704, 718, 722]","['Obstanlagen (Äpfel)', 'Obstanlagen (Birnen)', 'Obstanlagen (Steinobst)', 'Trüffelanlagen', 'Baumschulen von Reben']"
-Vegetation,PerennialCrop,SpecialCulturePerennial,,Vegetation_PerennialCrop_SpecialCulturePerennial,"['Vegetation_Special crops_Berries_Berries', nan]","[705, 706]","['Mehrjährige Beeren', 'Mehrjährige Gewürz- und Medizinalpflanzen']"
-Vegetation,Permaculture,SpecialCulturePerma,,Vegetation_Permaculture_SpecialCulturePerma,"['Vegetation_Orchards_OrchardCrop_Hops', 'Vegetation_Orchards_TreeCrop_TreeCrop', nan, 'Vegetation_Special crops_Hedge_Hedge', 'Vegetation_Special crops_Multiple_Multiple', 'Vegetation_Special crops_Gardens_Gardens']","[708, 712, 714, 852, 902, 909]","['Hopfen', 'Christbäume', 'Ziersträucher, Ziergehölze und Zierstauden', 'Hecken-, Feld- und Ufergehölze (mit Krautsaum)', 'Übrige unproduktive Flächen (z.B. gemulchte Flächen, stark verunkrautete Flächen, Hecken ohne Pufferstreifen)', 'Hausgärten']"
-Vegetation,Permaculture,Chestnuts,,Vegetation_Permaculture_Chestnuts,"['Vegetation_Orchards_OrchardCrop_Chestnut', nan]","[720, 923]","['Gepflegte Selven (Edelkastanienbäume)', 'Edelkastanienbäume']"
+tier_1,tier_2,tier_3,label_slug,label_slugs_orig,lnf_codes,lnf_descriptions
+Vegetation,AnnualCrop,SummerBarley,Vegetation_AnnualCrop_SummerBarley,['Vegetation_Field crops_SmallGrainCereal_SummerBarley'],[501],['Sommergerste']
+Vegetation,PerennialCrop,WinterBarley,Vegetation_PerennialCrop_WinterBarley,['Vegetation_Field crops_SmallGrainCereal_WinterBarley'],[502],['Wintergerste']
+Vegetation,PerennialCrop,Oats,Vegetation_PerennialCrop_Oats,['Vegetation_Field crops_SmallGrainCereal_Oat'],[504],['Hafer']
+Vegetation,PerennialCrop,Triticale,Vegetation_PerennialCrop_Triticale,['Vegetation_Field crops_SmallGrainCereal_Wheat'],[505],['Triticale']
+Vegetation,PerennialCrop,CerealMix,Vegetation_PerennialCrop_CerealMix,['Vegetation_Field crops_SmallGrainCereal_Grain'],[506],['Mischel Futtergetreide']
+Vegetation,PerennialCrop,FodderCereals,Vegetation_PerennialCrop_FodderCereals,['Vegetation_Field crops_SmallGrainCereal_Wheat'],[507],['Futterweizen gemäss Sortenliste swiss granum']
+Vegetation,AnnualCrop,Maize,Vegetation_AnnualCrop_Maize,['Vegetation_Field crops_LargeGrainCereal_Maize'],[508],['Körnermais']
+Vegetation,AnnualCrop,Rice,Vegetation_AnnualCrop_Rice,[nan],[509],['Reis']
+Vegetation,AnnualCrop,HardWheat,Vegetation_AnnualCrop_HardWheat,[nan],[510],['Hartweizen']
+Vegetation,AnnualCrop,EinkornWheat,Vegetation_AnnualCrop_EinkornWheat,['Vegetation_Field crops_SmallGrainCereal_EinkornWheat'],[511],"['Emmer, Einkorn']"
+Vegetation,AnnualCrop,SummerWheat,Vegetation_AnnualCrop_SummerWheat,['Vegetation_Field crops_SmallGrainCereal_SummerWheat'],[512],['Sommerweizen (ohne Futterweizen der Sortenliste swiss granum)']
+Vegetation,PerennialCrop,WinterWheat,Vegetation_PerennialCrop_WinterWheat,['Vegetation_Field crops_SmallGrainCereal_WinterWheat'],[513],['Winterweizen (ohne Futterweizen der Sortenliste swiss granum)']
+Vegetation,PerennialCrop,Rye,Vegetation_PerennialCrop_Rye,['Vegetation_Field crops_SmallGrainCereal_Rye'],[514],['Roggen']
+Vegetation,PerennialCrop,Spelt,Vegetation_PerennialCrop_Spelt,['Vegetation_Field crops_SmallGrainCereal_Spelt'],[516],['Dinkel']
+Vegetation,AnnualCrop,DryRice,Vegetation_AnnualCrop_DryRice,[nan],[520],['Trockenreis']
+Vegetation,PerennialCrop,SugarBeet,Vegetation_PerennialCrop_SugarBeet,"['Vegetation_Field crops_BroadLeafRowCrop_Sugar_beets', 'Vegetation_Field crops_BroadLeafRowCrop_Beets']","[522, 523]","['Zuckerrüben', 'Futterrüben']"
+Vegetation,AnnualCrop,Potatoes,Vegetation_AnnualCrop_Potatoes,['Vegetation_Field crops_BroadLeafRowCrop_Potatoes'],[524],['Kartoffeln']
+Vegetation,AnnualCrop,SummerRapeseed,Vegetation_AnnualCrop_SummerRapeseed,"['Vegetation_Field crops_BroadLeafRowCrop_SummerRapeseed', nan]","[526, 590]","['Sommerraps zur Speiseölgewinnung', 'Sommerraps als nachwachsender Rohstoff']"
+Vegetation,PerennialCrop,WinterRapeseed,Vegetation_PerennialCrop_WinterRapeseed,['Vegetation_Field crops_BroadLeafRowCrop_WinterRapeseed'],[527],['Winterraps zur Speiseölgewinnung']
+Vegetation,AnnualCrop,Soybeans,Vegetation_AnnualCrop_Soybeans,['Vegetation_Field crops_BroadLeafRowCrop_Soy'],[528],['Soja']
+Vegetation,AnnualCrop,WetRice,Vegetation_AnnualCrop_WetRice,[nan],[529],['Nassreis']
+Vegetation,AnnualCrop,Sunflowers,Vegetation_AnnualCrop_Sunflowers,['Vegetation_Field crops_BroadLeafRowCrop_Sunflowers'],[531],['Sonnenblumen zur Speiseölgewinnung']
+Vegetation,AnnualCrop,SpecialCultureAnnual,Vegetation_AnnualCrop_SpecialCultureAnnual,"['Vegetation_Field crops_BroadLeafRowCrop_Linen', 'Vegetation_Field crops_VegetableCrop_Pumpkin', 'Vegetation_Field crops_VegetableCrop_Vegetables', 'Vegetation_Field crops_VegetableCrop_Chicory', 'Vegetation_Special crops_Berries_Berries', nan, 'Vegetation_Field crops_BroadLeafRowCrop_Legumes']","[534, 539, 546, 547, 551, 552, 631]","['Lein', 'Ölkürbisse', 'Freiland-Konservengemüse', 'Wurzeln der Treibzichorie', 'Einjährige Beeren (z.B. Erdbeeren)', 'Einjährige nachwachsende Rohstoffe (Kenaf, usw.)', 'Futterleguminosen für die Samenproduktion (Vertragsanbau)']"
+Vegetation,AnnualCrop,Hemp,Vegetation_AnnualCrop_Hemp,"['Vegetation_Field crops_BroadLeafRowCrop_Hemp', nan]","[535, 575]","['Hanf', 'Hanf zur Nutzung der Samen']"
+Vegetation,AnnualCrop,BroadBeans,Vegetation_AnnualCrop_BroadBeans,['Vegetation_Field crops_BroadLeafRowCrop_Field bean'],[536],['Bohnen und Wicken zur Körnergewinnung (z.B. Ackerbohnen) ']
+Vegetation,AnnualCrop,ProteinPeas,Vegetation_AnnualCrop_ProteinPeas,['Vegetation_Field crops_BroadLeafRowCrop_Peas'],[537],['Erbsen zur Körnergewinnung (z.B. Eiweisserbsen)']
+Vegetation,AnnualCrop,Lupines,Vegetation_AnnualCrop_Lupines,['Vegetation_Field crops_BroadLeafRowCrop_Lupine'],[538],['Lupinen']
+Vegetation,AnnualCrop,Chickpeas,Vegetation_AnnualCrop_Chickpeas,[nan],[540],['Kichererbsen']
+Vegetation,AnnualCrop,Tobacco,Vegetation_AnnualCrop_Tobacco,['Vegetation_Field crops_BroadLeafRowCrop_Tobacco'],[541],['Tabak']
+Vegetation,AnnualCrop,Millet,Vegetation_AnnualCrop_Millet,"['Vegetation_Field crops_LargeGrainCereal_Sorghum', nan]","[542, 578]","['Hirse', 'Hirse zur Körnergewinnung']"
+Vegetation,AnnualCrop,SiloCereals,Vegetation_AnnualCrop_SiloCereals,['Vegetation_Field crops_SmallGrainCereal_Grain'],[543],['Getreide siliert']
+Vegetation,AnnualCrop,Camelina,Vegetation_AnnualCrop_Camelina,['Vegetation_Field crops_BroadLeafRowCrop_Linen'],[544],['Leindotter']
+Vegetation,AnnualCrop,Vegetables,Vegetation_AnnualCrop_Vegetables,['Vegetation_Field crops_VegetableCrop_Vegetables'],[545],"['Einjährige Freilandgemüse, ohne Konservengemüse']"
+Vegetation,AnnualCrop,Buckwheat,Vegetation_AnnualCrop_Buckwheat,['Vegetation_Field crops_SmallGrainCereal_Buckwheat'],[548],['Buchweizen']
+Vegetation,AnnualCrop,Sorghum,Vegetation_AnnualCrop_Sorghum,"['Vegetation_Field crops_LargeGrainCereal_Sorghum', nan]","[549, 580]","['Sorghum', 'Sorghum zur Körnergewinnung']"
+nan,,,nan,"[nan, 'Vegetation_Forest_Forest_Forest']","[550, 901]","['Übrige Ackerfläche', 'Wald']"
+Vegetation,Permaculture,Grassland,Vegetation_Permaculture_Grassland,"['Vegetation_Grassland_BiodiversityArea_Biodiversity encouragement area', 'Vegetation_Special crops_Fallow_Fallow', nan, 'Vegetation_Grassland_Meadow_Meadow', 'Vegetation_Grassland_Pasture_Pasture']","[555, 556, 559, 601, 616]","['Ackerschonstreifen', 'Buntbrache', 'Saum auf Ackerflächen', 'Kunstwiesen (ohne Weiden)', 'Weiden (Heimweiden, übrige Weiden ohne Sömmerungsweiden)']"
+Vegetation,AnnualCrop,Poppy,Vegetation_AnnualCrop_Poppy,[nan],[566],['Mohn']
+Vegetation,AnnualCrop,Safflower,Vegetation_AnnualCrop_Safflower,[nan],[567],['Saflor']
+Vegetation,AnnualCrop,Lentils,Vegetation_AnnualCrop_Lentils,[nan],[568],['Linsen']
+Vegetation,AnnualCrop,CropMix,Vegetation_AnnualCrop_CropMix,"['Vegetation_Field crops_CropMix_MixedCrop', nan]","[569, 570]","['Mischungen von Bohnen, Wicken, Erbsen, Kichererbsen und Lupinen mit Getreide oder Leindotter, mindestens 30 % Anteil Leguminosen bei der Ernte (zur Körnergewinnung)', 'Mischungen von Linsen mit Getreide oder Leindotter, mindestens 30 % Anteil Linsen bei der Ernte (zur Körnergewinnung)']"
+Vegetation,AnnualCrop,Mustard,Vegetation_AnnualCrop_Mustard,['Vegetation_Field crops_BroadLeafRowCrop_Mustard'],[573],['Senf']
+Vegetation,AnnualCrop,Quinoa,Vegetation_AnnualCrop_Quinoa,[nan],[574],['Quinoa']
+Vegetation,Permaculture,Vines,Vegetation_Permaculture_Vines,['Vegetation_Orchards_OrchardCrop_Vines'],[701],['Reben']
+Vegetation,Permaculture,Orchards,Vegetation_Permaculture_Orchards,"['Vegetation_Orchards_OrchardCrop_Apples', 'Vegetation_Orchards_OrchardCrop_Pears', 'Vegetation_Orchards_OrchardCrop_StoneFruit', nan, 'Vegetation_Orchards_OrchardCrop_Vines']","[702, 703, 704, 718, 722]","['Obstanlagen (Äpfel)', 'Obstanlagen (Birnen)', 'Obstanlagen (Steinobst)', 'Trüffelanlagen', 'Baumschulen von Reben']"
+Vegetation,PerennialCrop,SpecialCulturePerennial,Vegetation_PerennialCrop_SpecialCulturePerennial,"['Vegetation_Special crops_Berries_Berries', nan]","[705, 706]","['Mehrjährige Beeren', 'Mehrjährige Gewürz- und Medizinalpflanzen']"
+Vegetation,Permaculture,SpecialCulturePerma,Vegetation_Permaculture_SpecialCulturePerma,"['Vegetation_Orchards_OrchardCrop_Hops', 'Vegetation_Orchards_TreeCrop_TreeCrop', nan, 'Vegetation_Special crops_Hedge_Hedge', 'Vegetation_Special crops_Multiple_Multiple', 'Vegetation_Special crops_Gardens_Gardens']","[708, 712, 714, 852, 902, 909]","['Hopfen', 'Christbäume', 'Ziersträucher, Ziergehölze und Zierstauden', 'Hecken-, Feld- und Ufergehölze (mit Krautsaum)', 'Übrige unproduktive Flächen (z.B. gemulchte Flächen, stark verunkrautete Flächen, Hecken ohne Pufferstreifen)', 'Hausgärten']"
+Vegetation,Permaculture,Chestnuts,Vegetation_Permaculture_Chestnuts,"['Vegetation_Orchards_OrchardCrop_Chestnut', nan]","[720, 923]","['Gepflegte Selven (Edelkastanienbäume)', 'Edelkastanienbäume']"
