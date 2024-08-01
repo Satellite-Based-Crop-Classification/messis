@@ -135,7 +135,7 @@ class HierarchicalClassifier(nn.Module):
             dropout_p=0.1,
             img_size=256, 
             patch_size=16, 
-            num_frames=3, 
+            num_frames=3,
             bands=[0, 1, 2, 3, 4, 5], 
             backbone_weights_path=None, 
             freeze_backbone=True, 
@@ -147,10 +147,11 @@ class HierarchicalClassifier(nn.Module):
         super(HierarchicalClassifier, self).__init__()
 
         self.embed_dim = 768
+        if num_frames % 3 != 0:
+            raise ValueError("The number of frames must be a multiple of 3, it is currently: ", num_frames)
         self.num_frames = num_frames
-        self.output_embed_dim = self.embed_dim * self.num_frames
         self.hp, self.wp = img_size // patch_size, img_size // patch_size
-        self.head_channels = 256 # TODO: We should research what makes sense here (same channels, gradual decrease from 1024, ...)
+        self.head_channels = 256
         self.heads_spec = heads_spec
         self.dropout_p = dropout_p
         self.loss_ignore_background = loss_ignore_background
@@ -162,7 +163,7 @@ class HierarchicalClassifier(nn.Module):
         self.prithvi = TemporalViTEncoder(
             img_size=img_size,
             patch_size=patch_size,
-            num_frames=self.num_frames,
+            num_frames=3,
             tubelet_size=1,
             in_chans=len(bands),
             embed_dim=self.embed_dim,
@@ -179,23 +180,24 @@ class HierarchicalClassifier(nn.Module):
             param.requires_grad = not freeze_backbone
 
         # Neck to transform the token-based output of the transformer into a spatial feature map
+        number_of_necks = self.num_frames // 3
         if use_bottleneck_neck:
-            self.neck = ConvTransformerTokensToEmbeddingBottleneckNeck(
-                embed_dim=self.embed_dim * self.num_frames,
-                output_embed_dim=self.output_embed_dim,
+            self.necks = nn.ModuleList([ConvTransformerTokensToEmbeddingBottleneckNeck(
+                embed_dim=self.embed_dim * 3,
+                output_embed_dim=self.embed_dim * 3,
                 drop_cls_token=True,
                 Hp=self.hp,
                 Wp=self.wp,
                 bottleneck_reduction_factor=bottleneck_reduction_factor
-            )
+            ) for _ in range(number_of_necks)])
         else:
-            self.neck = ConvTransformerTokensToEmbeddingNeck(
-                embed_dim=self.embed_dim * self.num_frames,
-                output_embed_dim=self.output_embed_dim,
+            self.necks = nn.ModuleList([ConvTransformerTokensToEmbeddingNeck(
+                embed_dim=self.embed_dim * 3,
+                output_embed_dim=self.embed_dim * 3,
                 drop_cls_token=True,
                 Hp=self.hp,
                 Wp=self.wp,
-            )
+            ) for _ in range(number_of_necks)])
 
         # Initialize heads and loss weights based on tiers
         self.heads = nn.ModuleDict()
@@ -217,7 +219,7 @@ class HierarchicalClassifier(nn.Module):
                 self.total_classes += num_classes
 
                 self.heads[head_name] = HierarchicalFCNHead(
-                    in_channels=self.output_embed_dim if head_count == 0 else self.head_channels,
+                    in_channels=(self.embed_dim * self.num_frames) if head_count == 0 else self.head_channels,
                     out_channels=self.head_channels,
                     num_classes=num_classes,
                     num_convs=head_info['num_convs'],
@@ -238,22 +240,31 @@ class HierarchicalClassifier(nn.Module):
         self.loss_func = nn.CrossEntropyLoss(ignore_index=-1)
 
     def forward(self, x):
+        if self.debug:
+            print(f"Input shape: {safe_shape(x)}") # torch.Size([4, 6, 9, 224, 224])
+
         # Extract features from the base model
-        features = self.prithvi(x)
+        if len(self.necks) == 1:
+            features = [x]
+        else:
+            features = torch.chunk(x, len(self.necks), dim=2)
+        features = [self.prithvi(x) for x in features]
 
         if self.debug:
-            print(f"Features shape after base model: {safe_shape(features)}")
+            print(f"Features shape after base model: {', '.join([safe_shape(f) for f in features])}") # (tuple) : torch.Size([4, 589, 768]), , (tuple) : torch.Size
 
         # Process through the neck
-        features = self.neck(features)
+        features = [neck(feat_) for feat_, neck in zip(features, self.necks)]
 
         if self.debug:
-            print(f"Features shape after neck: {safe_shape(features)}")
+            print(f"Features shape after neck: {', '.join([safe_shape(f) for f in features])}") # (tuple) : torch.Size([4, 2304, 224, 224]), , (tuple) : torch.Size
 
         # Remove from tuple
-        features = features[0]
+        features = [feat[0] for feat in features]
+        # stack the features to create a tensor of torch.Size([4, 6912, 224, 224])
+        features = torch.concatenate(features, dim=1)
         if self.debug:
-            print(f"Features shape after removing tuple: {safe_shape(features)}")
+            print(f"Features shape after removing tuple: {safe_shape(features)}") # torch.Size([4, 6912, 224, 224])
 
         # Process through the heads
         outputs = {}
@@ -802,7 +813,7 @@ class LogMessisMetrics(pl.Callback):
         trainer.logger.experiment.log({f"{phase}_examples": examples})
 
         # Log segmentation masks
-        batch_input_data = self.inputs_to_log[phase].cpu() # shape [BS, 6, 3, 224, 224]
+        batch_input_data = self.inputs_to_log[phase].cpu() # shape [BS, 6, N_TIMESTEPS, 224, 224]
         ground_truth_masks = self.images_to_log_targets[phase].cpu().numpy()
         pixel_wise_masks = self.images_to_log[phase]["pixelwise"].cpu().numpy()
         field_majority_masks = self.images_to_log[phase]["majority"].cpu().numpy()
