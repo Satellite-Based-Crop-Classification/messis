@@ -1,0 +1,52 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" version="24.7.6">
+  <diagram name="Page-1" id="IzFDyRbBiw-TGzU73c33">
+    <mxGraphModel dx="1050" dy="653" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="kI_vmBCgJTJrpw7rfspl-10" value="&lt;div style=&quot;&quot;&gt;&lt;b style=&quot;background-color: initial;&quot;&gt;1. Data Acquisition&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;ul style=&quot;padding-left: 25px;&quot;&gt;&lt;li&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;Download Sentinel-2 satellite data (Level-2A processed) for the specified area (cantons Zurich and Thurgau)&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;Obtain ground truth labels (agricultural data) from cantons Thurgau and Zürich&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;/div&gt;" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;align=center;noLabel=0;size=0.05555555555555555;" vertex="1" parent="1">
+          <mxGeometry x="140" y="170" width="340" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="kI_vmBCgJTJrpw7rfspl-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="kI_vmBCgJTJrpw7rfspl-12" target="kI_vmBCgJTJrpw7rfspl-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="kI_vmBCgJTJrpw7rfspl-12" value="&lt;div style=&quot;&quot;&gt;&lt;div&gt;&lt;b&gt;2. Data Selection&lt;/b&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;ul style=&quot;padding-left: 25px;&quot;&gt;&lt;li&gt;&lt;li&gt;Select satellite images with less than 5% cloud cover&lt;/li&gt;&lt;li&gt;Choose 3 timesteps: first, middle, and last images within the specified date range (March to September 2019)&lt;/li&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;/div&gt;" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;align=center;noLabel=0;size=0.05555555555555555;" vertex="1" parent="1">
+          <mxGeometry x="140" y="310" width="340" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="kI_vmBCgJTJrpw7rfspl-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="kI_vmBCgJTJrpw7rfspl-13" target="kI_vmBCgJTJrpw7rfspl-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="kI_vmBCgJTJrpw7rfspl-13" value="&lt;div style=&quot;&quot;&gt;&lt;div&gt;&lt;b&gt;3.&amp;nbsp;&lt;/b&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;&lt;b&gt;Ground Truth Preparation&lt;/b&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;ul style=&quot;padding-left: 25px;&quot;&gt;&lt;li&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;Merge ground truth from the cantons of Zurich and Thrugau, remove overlapping polygons&lt;/span&gt;&lt;br&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;Rasterize ground truth polygons into an image matching the downloaded satellite data and area&lt;/span&gt;&lt;br&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;/div&gt;" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;align=center;noLabel=0;size=0.05555555555555555;" vertex="1" parent="1">
+          <mxGeometry x="140" y="450" width="340" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="kI_vmBCgJTJrpw7rfspl-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="kI_vmBCgJTJrpw7rfspl-14" target="kI_vmBCgJTJrpw7rfspl-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="kI_vmBCgJTJrpw7rfspl-14" value="&lt;div style=&quot;&quot;&gt;&lt;div&gt;&lt;b&gt;4.&amp;nbsp;&lt;/b&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;&lt;b&gt;Image Splitting&lt;/b&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;ul style=&quot;padding-left: 25px;&quot;&gt;&lt;li&gt;&lt;li&gt;Split satellite and ground truth images into 224x224 pixel chips&lt;/li&gt;&lt;li&gt;Discard chips with no ground truth data&lt;/li&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;/div&gt;" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;align=center;noLabel=0;size=0.05555555555555555;" vertex="1" parent="1">
+          <mxGeometry x="140" y="590" width="340" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="kI_vmBCgJTJrpw7rfspl-22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="kI_vmBCgJTJrpw7rfspl-15" target="kI_vmBCgJTJrpw7rfspl-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="kI_vmBCgJTJrpw7rfspl-15" value="&lt;div style=&quot;&quot;&gt;&lt;div&gt;&lt;b&gt;5.&amp;nbsp;&lt;/b&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;&lt;b&gt;Dataset Organization&lt;/b&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;ul style=&quot;padding-left: 25px;&quot;&gt;&lt;li&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;Assign chips to 6 folds using a custom strategy to minimize mean Kullback-Leibler divergence&lt;/span&gt;&lt;br&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;/div&gt;" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;align=center;noLabel=0;size=0.05555555555555555;" vertex="1" parent="1">
+          <mxGeometry x="530" y="170" width="340" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="kI_vmBCgJTJrpw7rfspl-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="kI_vmBCgJTJrpw7rfspl-16" target="kI_vmBCgJTJrpw7rfspl-17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="kI_vmBCgJTJrpw7rfspl-16" value="&lt;div style=&quot;&quot;&gt;&lt;div&gt;&lt;b&gt;6.&amp;nbsp;&lt;/b&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;&lt;b&gt;Data Normalization&lt;/b&gt;&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;ul style=&quot;padding-left: 25px;&quot;&gt;&lt;li&gt;&lt;li&gt;Normalize chip data to have a mean of 0 and a standard deviation of 1 for each channel&lt;/li&gt;&lt;li&gt;Compute normalization parameters using only training folds&lt;/li&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;/div&gt;" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;align=center;noLabel=0;size=0.05555555555555555;" vertex="1" parent="1">
+          <mxGeometry x="530" y="310" width="340" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="kI_vmBCgJTJrpw7rfspl-17" value="&lt;div style=&quot;&quot;&gt;&lt;div&gt;&lt;b&gt;7.&amp;nbsp;&lt;/b&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;&lt;b&gt;Data Augmentation&lt;/b&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;(for specific experiments)&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;div style=&quot;text-align: left;&quot;&gt;&lt;ul style=&quot;padding-left: 25px;&quot;&gt;&lt;li&gt;Apply random horizontal and vertical flips based on flip probability&lt;/li&gt;&lt;li&gt;Add jitter (normally distributed noise) to the image&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;&lt;/div&gt;" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;align=center;noLabel=0;size=0.05555555555555555;" vertex="1" parent="1">
+          <mxGeometry x="530" y="450" width="340" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="kI_vmBCgJTJrpw7rfspl-18" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="kI_vmBCgJTJrpw7rfspl-10" target="kI_vmBCgJTJrpw7rfspl-12">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="490" y="540" as="sourcePoint" />
+            <mxPoint x="540" y="490" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
