@@ -1,5 +1,5 @@
 outs:
-- md5: 4f1a4ad3fc291a08be634ce467014dfc
-  size: 3813
+- md5: fa7c9990b7ebff3f392446fcb7a836e1
+  size: 11241
   hash: md5
   path: labels_hierarchy_seasonality.csv

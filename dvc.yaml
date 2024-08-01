@@ -24,6 +24,7 @@ stages:
     - data/satellite
     - data/labels_hierarchy.csv
     - data/labels_hierarchy_seasonality.csv
+    - data/labels_hierarchy_seasonality_reduced.csv
     params:
     - zueri_crop.bbox
     - max_cloud_cover

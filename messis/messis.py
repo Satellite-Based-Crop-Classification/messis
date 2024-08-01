@@ -222,7 +222,7 @@ class HierarchicalClassifier(nn.Module):
                     in_channels=(self.embed_dim * self.num_frames) if head_count == 0 else self.head_channels,
                     out_channels=self.head_channels,
                     num_classes=num_classes,
-                    num_convs=1,
+                    num_convs=head_info['num_convs'],
                     kernel_size=kernel_size,
                     dropout_p=self.dropout_p,
                     debug=self.debug
