@@ -56,8 +56,12 @@ stages:
       size: 5970
     - path: data/labels_hierarchy_seasonality.csv
       hash: md5
-      md5: 4f1a4ad3fc291a08be634ce467014dfc
-      size: 3813
+      md5: fa7c9990b7ebff3f392446fcb7a836e1
+      size: 11241
+    - path: data/labels_hierarchy_seasonality_reduced.csv
+      hash: md5
+      md5: 6b7eec240d94523ee41d761e910a9481
+      size: 8657
     - path: data/satellite
       hash: md5
       md5: d1fe4038884990085f2fb94032b51bb1.dir
@@ -65,8 +69,8 @@ stages:
       nfiles: 114
     - path: rasterize_labels.ipynb
       hash: md5
-      md5: dbd3c677ac5a02a905c78f22bc49e778
-      size: 5199797
+      md5: 4bff7410cccff172f87a791ae8411119
+      size: 5200031
     params:
       params.yaml:
         label_hierarchy_definition: zueri_crop
@@ -166,8 +170,8 @@ stages:
     outs:
     - path: data/chips_stats.yaml
       hash: md5
-      md5: bfcaab99fa5c32e255507aeb1be94a77
-      size: 1953
+      md5: ff9e9ec952a3e8222a7e795b7686e1a6
+      size: 1848
   download-prithvi-base-model:
     cmd: papermill download_prithvi_100M.ipynb download_prithvi_100M.output.ipynb
       && rm download_prithvi_100M.output.ipynb
