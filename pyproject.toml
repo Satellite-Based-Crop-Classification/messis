@@ -38,6 +38,9 @@ lion-pytorch = "^0.2.2"
 torchview = "^0.2.6"
 kaleido = "0.2.1"
 latextable = "^1.0.1"
+streamlit = "^1.37.0"
+folium = "^0.17.0"
+streamlit-folium = "^0.22.0"
 
 
 [tool.poetry.group.dev.dependencies]
