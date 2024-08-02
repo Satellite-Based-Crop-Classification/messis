@@ -122,7 +122,7 @@ stages:
       params.yaml:
         chip_size: 224
         distribution_transform_mode: None
-        fold_split_mode: stratified
+        fold_split_mode: random
         number_of_folds: 6
         number_of_timespans: 3
         paths.field_ids: data/field_ids.tif
@@ -132,7 +132,7 @@ stages:
     outs:
     - path: data/chips
       hash: md5
-      md5: f6ebfcbd60771972fb86c98a4d0a858e.dir
+      md5: a75fc4f3a212d46a4c689734c1f9ea97.dir
       size: 927845490
       nfiles: 1287
     - path: data/stacked_features.tif
@@ -149,7 +149,7 @@ stages:
       size: 4765
     - path: data/chips
       hash: md5
-      md5: f6ebfcbd60771972fb86c98a4d0a858e.dir
+      md5: a75fc4f3a212d46a4c689734c1f9ea97.dir
       size: 927845490
       nfiles: 1287
     - path: data/labels_hierarchy.tif
@@ -166,8 +166,8 @@ stages:
     outs:
     - path: data/chips_stats.yaml
       hash: md5
-      md5: bfcaab99fa5c32e255507aeb1be94a77
-      size: 1953
+      md5: 9164b722dbc5cc463e8d4a996726018f
+      size: 1843
   download-prithvi-base-model:
     cmd: papermill download_prithvi_100M.ipynb download_prithvi_100M.output.ipynb
       && rm download_prithvi_100M.output.ipynb
