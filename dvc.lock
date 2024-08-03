@@ -122,7 +122,7 @@ stages:
       params.yaml:
         chip_size: 224
         distribution_transform_mode: None
-        fold_split_mode: sechidis
+        fold_split_mode: band
         number_of_folds: 6
         number_of_timespans: 3
         paths.field_ids: data/field_ids.tif
@@ -132,9 +132,9 @@ stages:
     outs:
     - path: data/chips
       hash: md5
-      md5: c53ff1e7cb99873595544f43ed633c92.dir
-      size: 927845490
-      nfiles: 1287
+      md5: 389b7872b1aacfd07e0584bf1dac244e.dir
+      size: 798076890
+      nfiles: 1107
     - path: data/stacked_features.tif
       hash: md5
       md5: df15c6db1f1edd07432090943b8d1aef
@@ -149,9 +149,9 @@ stages:
       size: 4765
     - path: data/chips
       hash: md5
-      md5: c53ff1e7cb99873595544f43ed633c92.dir
-      size: 927845490
-      nfiles: 1287
+      md5: 389b7872b1aacfd07e0584bf1dac244e.dir
+      size: 798076890
+      nfiles: 1107
     - path: data/labels_hierarchy.tif
       hash: md5
       md5: 92d349d792ad7e2d5370791a32a76ae6
@@ -166,8 +166,8 @@ stages:
     outs:
     - path: data/chips_stats.yaml
       hash: md5
-      md5: 086482511b349aa64f78209e3ba7ec1a
-      size: 1857
+      md5: 59e1b52ab4cadbb6acbacc7d1e53be68
+      size: 1867
   download-prithvi-base-model:
     cmd: papermill download_prithvi_100M.ipynb download_prithvi_100M.output.ipynb
       && rm download_prithvi_100M.output.ipynb
