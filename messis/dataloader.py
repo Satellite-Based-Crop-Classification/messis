@@ -265,11 +265,17 @@ class GeospatialDataModule(LightningDataModule):
             'debug': self.debug,
             'data_augmentation': self.data_augmentation
         }
+        common_params_val_test = {
+            **common_params,
+             'data_augmentation': {
+                'enabled': False
+            }
+        }
         if stage in ('fit', None):
             self.train_dataset = GeospatialDataset(fold_indicies=self.train_folds, subset_size=self.subsets.get('train', None), **common_params)
-            self.val_dataset   = GeospatialDataset(fold_indicies=self.val_folds,   subset_size=self.subsets.get('val',   None), **common_params)
+            self.val_dataset   = GeospatialDataset(fold_indicies=self.val_folds,   subset_size=self.subsets.get('val',   None), **common_params_val_test)
         if stage in ('test', None):
-            self.test_dataset  = GeospatialDataset(fold_indicies=self.test_folds,  subset_size=self.subsets.get('test',  None), **common_params)
+            self.test_dataset  = GeospatialDataset(fold_indicies=self.test_folds,  subset_size=self.subsets.get('test',  None), **common_params_val_test)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, persistent_workers=True, shuffle=True)
