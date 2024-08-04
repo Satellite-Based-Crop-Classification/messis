@@ -216,11 +216,10 @@ class HierarchicalClassifier(nn.Module):
                 kernel_size = head_info.get('kernel_size', 3)
                 num_convs = head_info.get('num_convs', 1)
                 num_channels = head_info.get('num_channels', 256)
-                print(f"The KeRnEl size is: {kernel_size}")
                 self.total_classes += num_classes
 
                 self.heads[head_name] = HierarchicalFCNHead(
-                    in_channels=(self.embed_dim * self.num_frames) if head_count == 0 else self.head_out_channels,
+                    in_channels=(self.embed_dim * self.num_frames) if head_count == 0 else num_channels,
                     out_channels=num_channels,
                     num_classes=num_classes,
                     num_convs=num_convs,

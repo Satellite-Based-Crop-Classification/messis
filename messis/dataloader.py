@@ -265,7 +265,7 @@ class GeospatialDataModule(LightningDataModule):
             'debug': self.debug,
             'data_augmentation': self.data_augmentation
         }
-        common_params_val_test = {
+        common_params_val_test = { # Never augment validation or test data
             **common_params,
              'data_augmentation': {
                 'enabled': False
