@@ -1,0 +1,49 @@
+﻿Tier 1,Tier 1 Accuracy,Tier 2,Tier 2 Accuracy,Tier 3,Tier 3 Accuracy
+Field crops (41.39%) ,98.2,SmallGrainCereal (16.89%) ,97.7,SummerWheat (0.13%),38
+,,,,WinterWheat (10.77%),95.7
+,,,,Wheat (1.20%),39.4
+,,,,EinkornWheat (0.14%),49.8
+,,,,SummerBarley (0.05%),26.1
+,,,,WinterBarley (3.49%),96.4
+,,,,Grain (0.05%),21.7
+,,,,Rye (0.14%),68.1
+,,,,Spelt (0.70%),84
+,,,,Oat (0.21%),76.4
+,,,,Buckwheat (0.02%),7
+,,LargeGrainCereal (10.37%) ,94.3,Maize (10.30%),94.7
+,,,,Sorghum (0.07%),27
+,,VegetableCrop (2.85%),83.4,Vegetables (2.76%),82.3
+,,,,Pumpkin (0.03%),14.2
+,,,,Chicory (0.07%),30.8
+,,BroadLeafRowCrop (11.20%),95.1,Sugar_beets (4.26%),97.2
+,,,,Beets (0.01%),0
+,,,,Potatoes (1.65%),86.6
+,,,,Sunflowers (1.05%),92.8
+,,,,Linen (0.04%),54.4
+,,,,Hemp (0.02%),3.1
+,,,,Soy (0.37%),87.4
+,,,,WinterRapeseed (3.21%),97.6
+,,,,SummerRapeseed (0.02%),0
+,,,,Field bean (0.15%),88.3
+,,,,Peas (0.32%),82.4
+,,,,Lupine (<0.01%),0
+,,,,Tobacco (0.03%),48.5
+,,,,Mustard (<0.01%),0
+,,,,Legumes (0.05%),78
+,,CropMix (0.08%),16.7,MixedCrop (0.08%),39.7
+Grassland (56.00%),97.9,Meadow (47.76%),95.3,Meadow (47.76%),94.9
+,,Pasture (8.20%),37.4,Pasture (8.20%),42.4
+,,BiodiversityArea (0.04%),0,Biodiversity encouragement area (0.04%),0
+Orchards (1.54%) ,49.6,OrchardCrop (1.41%),76.3,Apples (0.40%),69.3
+,,,,Pears (0.07%),2.3
+,,,,Vines (0.83%),82.2
+,,,,Hops (0.01%),0
+,,,,StoneFruit (0.09%),24.1
+,,,,Chestnut (<0.01%),0
+,,TreeCrop (0.13%),20.9,TreeCrop (0.13%),37.2
+Special crops (1.00%),8.3,Hedge,1,Hedge (0.42%),1.5
+,,Gardens,,Gardens (<0.01%),0
+,,Multiple,,Multiple (0.01%),0
+,,Berries (0.22%),18.8,Berries (0.22%),25.8
+,,Fallow (0.36%),65.8,Fallow (0.36%),70.3
+Forest (0.07%),0,Forest (0.07%),0,Forest (0.07%),1.6
