@@ -7,7 +7,7 @@
 #SBATCH --out=logs/slurm/model_training.ipynb_out.txt
 #SBATCH --err=logs/slurm/model_training.ipynb_out.txt
 #SBATCH --job-name="messis"
-# To exclude: SBATCH --exclude=gpu22a
+# exclude low VRAM gpus (<20GB): SBATCH --exclude=gpu22a,gpu22b,sdas1,sdas2,node15
 
 # Config above according to: https://lightning.ai/docs/pytorch/stable/clouds/cluster_advanced.html
 
