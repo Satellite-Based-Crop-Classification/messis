@@ -1,0 +1,49 @@
+Tier 1,Tier 1 Precision,Tier 2,Tier 2 Precision,Tier 3,Tier 3 Precision
+Field crops (42.86%),96.58 ± 0.21,BroadLeafRowCrop (11.6%),94.03 ± 0.78,Beets (0.01%),0.00 ± 0.00
+,,,,Field bean (0.16%),85.26 ± 11.14
+,,,,Hemp (0.03%),0.00 ± 0.00
+,,,,Legumes (0.05%),40.00 ± 54.77
+,,,,Linen (0.05%),59.56 ± 54.38
+,,,,Lupine (0.0%),0.00 ± 0.00
+,,,,Mustard (0.0%),nan ± nan
+,,,,Peas (0.33%),88.94 ± 8.25
+,,,,Potatoes (1.72%),82.88 ± 4.17
+,,,,Soy (0.38%),80.95 ± 8.36
+,,,,Sugar_beets (4.43%),93.41 ± 1.56
+,,,,SummerRapeseed (0.02%),0.00 ± 0.00
+,,,,Sunflowers (1.09%),91.00 ± 2.09
+,,,,Tobacco (0.03%),0.00 ± 0.00
+,,,,WinterRapeseed (3.31%),94.91 ± 1.07
+,,CropMix (0.09%),0.00 ± 0.00,MixedCrop (0.09%),0.00 ± 0.00
+,,LargeGrainCereal (10.68%),89.64 ± 1.48,Maize (10.6%),89.44 ± 1.49
+,,,,Sorghum (0.07%),0.00 ± 0.00
+,,SmallGrainCereal (17.56%),96.07 ± 0.76,Buckwheat (0.02%),0.00 ± 0.00
+,,,,EinkornWheat (0.16%),39.18 ± 14.94
+,,,,Grain (0.04%),0.00 ± 0.00
+,,,,Oat (0.21%),69.45 ± 15.97
+,,,,Rye (0.13%),52.87 ± 16.21
+,,,,Spelt (0.72%),53.48 ± 13.36
+,,,,SummerBarley (0.06%),20.00 ± 44.72
+,,,,SummerWheat (0.13%),55.09 ± 15.06
+,,,,Wheat (1.23%),56.74 ± 8.97
+,,,,WinterBarley (3.67%),89.56 ± 1.02
+,,,,WinterWheat (11.18%),86.17 ± 1.07
+,,VegetableCrop (2.93%),70.82 ± 3.27,Chicory (0.08%),100.00 ± 0.00
+,,,,Pumpkin (0.03%),0.00 ± 0.00
+,,,,Vegetables (2.83%),68.66 ± 3.44
+Forest (0.16%),83.07 ± 11.01,Forest (0.16%),83.07 ± 11.01,Forest (0.16%),83.07 ± 11.01
+Grassland (54.47%),95.03 ± 0.37,BiodiversityArea (0.05%),0.00 ± 0.00,Biodiversity encouragement area (0.05%),0.00 ± 0.00
+,,Meadow (46.85%),84.03 ± 1.63,Meadow (46.85%),84.03 ± 1.63
+,,Pasture (7.58%),45.70 ± 2.43,Pasture (7.58%),45.70 ± 2.43
+Orchards (1.51%),81.80 ± 3.79,OrchardCrop (1.37%),82.20 ± 3.45,Apples (0.41%),70.32 ± 9.36
+,,,,Chestnut (0.0%),nan ± nan
+,,,,Hops (0.01%),0.00 ± 0.00
+,,,,Pears (0.08%),39.20 ± 22.54
+,,,,StoneFruit (0.09%),17.68 ± 16.96
+,,,,Vines (0.78%),77.75 ± 8.39
+,,TreeCrop (0.14%),23.64 ± 7.97,TreeCrop (0.14%),23.64 ± 7.97
+Special crops (1.0%),62.19 ± 10.27,Berries (0.21%),51.40 ± 18.23,Berries (0.21%),51.40 ± 18.23
+,,Fallow (0.37%),54.83 ± 6.51,Fallow (0.37%),54.83 ± 6.51
+,,Gardens (0.0%),0.00 ± 0.00,Gardens (0.0%),0.00 ± 0.00
+,,Hedge (0.41%),36.27 ± 14.09,Hedge (0.41%),36.27 ± 14.09
+,,Multiple (0.01%),0.00 ± 0.00,Multiple (0.01%),0.00 ± 0.00
