@@ -1,0 +1,175 @@
+lnf_code,3rd_tier_new,4th_tier_old,label_slug_new,label_slug_orig,pixel_count,Nutzung_DE
+501,SummerBarley,Barley,Vegetation_AnnualCrop_SummerBarley,Vegetation_Field crops_SmallGrainCereal_SummerBarley,4210.0,Sommergerste
+502,WinterBarley,Barley,Vegetation_PerennialCrop_WinterBarley,Vegetation_Field crops_SmallGrainCereal_WinterBarley,292885.0,Wintergerste
+504,Oats,Oat,Vegetation_PerennialCrop_Oats,Vegetation_Field crops_SmallGrainCereal_Oat,17895.0,Hafer
+505,Triticale,Wheat,Vegetation_PerennialCrop_Triticale,Vegetation_Field crops_SmallGrainCereal_Wheat,97948.0,Triticale
+506,CerealMix,,Vegetation_PerennialCrop_CerealMix,Vegetation_Field crops_SmallGrainCereal_Grain,4677.0,Mischel Futtergetreide
+507,FodderCereals,Wheat,Vegetation_PerennialCrop_FodderCereals,Vegetation_Field crops_SmallGrainCereal_Wheat,97948.0,Futterweizen gemäss Sortenliste swiss granum
+508,Maize,Maize,Vegetation_AnnualCrop_Maize,Vegetation_Field crops_LargeGrainCereal_Maize,809566.0,Körnermais
+509,Rice,,Vegetation_AnnualCrop_Rice,,,Reis
+510,HardWheat,,Vegetation_AnnualCrop_HardWheat,,,Hartweizen
+511,EinkornWheat,,Vegetation_AnnualCrop_EinkornWheat,Vegetation_Field crops_SmallGrainCereal_EinkornWheat,12525.0,"Emmer, Einkorn"
+512,SummerWheat,,Vegetation_AnnualCrop_SummerWheat,Vegetation_Field crops_SmallGrainCereal_SummerWheat,11065.0,Sommerweizen (ohne Futterweizen der Sortenliste swiss granum)
+513,WinterWheat,Wheat,Vegetation_PerennialCrop_WinterWheat,Vegetation_Field crops_SmallGrainCereal_WinterWheat,837126.0,Winterweizen (ohne Futterweizen der Sortenliste swiss granum)
+514,Rye,Rye,Vegetation_PerennialCrop_Rye,Vegetation_Field crops_SmallGrainCereal_Rye,10602.0,Roggen
+515,CerealMix,,Vegetation_PerennialCrop_CerealMix,Vegetation_Field crops_SmallGrainCereal_Grain,4677.0,Mischel Brotgetreide
+516,Spelt,Spelt,Vegetation_PerennialCrop_Spelt,Vegetation_Field crops_SmallGrainCereal_Spelt,56321.0,Dinkel
+519,Maize,,Vegetation_AnnualCrop_Maize,Vegetation_Field crops_LargeGrainCereal_Maize,809566.0,Saatmais (Vertragsanbau)
+520,DryRice,,Vegetation_AnnualCrop_DryRice,,,Trockenreis
+521,Maize,,Vegetation_AnnualCrop_Maize,Vegetation_Field crops_LargeGrainCereal_Maize,809566.0,Silo- und Grünmais
+522,SugarBeet,,Vegetation_PerennialCrop_SugarBeet,Vegetation_Field crops_BroadLeafRowCrop_Sugar_beets,295998.0,Zuckerrüben
+523,SugarBeet,Beets,Vegetation_PerennialCrop_SugarBeet,Vegetation_Field crops_BroadLeafRowCrop_Beets,644.0,Futterrüben
+524,Potatoes,Potatoes,Vegetation_AnnualCrop_Potatoes,Vegetation_Field crops_BroadLeafRowCrop_Potatoes,110835.0,Kartoffeln
+525,Potatoes,,Vegetation_AnnualCrop_Potatoes,Vegetation_Field crops_BroadLeafRowCrop_Potatoes,110835.0,Pflanzkartoffeln (Vertragsanbau)
+526,SummerRapeseed,,Vegetation_AnnualCrop_SummerRapeseed,Vegetation_Field crops_BroadLeafRowCrop_SummerRapeseed,1571.0,Sommerraps zur Speiseölgewinnung
+527,WinterRapeseed,,Vegetation_PerennialCrop_WinterRapeseed,Vegetation_Field crops_BroadLeafRowCrop_WinterRapeseed,219773.0,Winterraps zur Speiseölgewinnung
+528,Soybeans,Soy,Vegetation_AnnualCrop_Soybeans,Vegetation_Field crops_BroadLeafRowCrop_Soy,25544.0,Soja
+529,WetRice,,Vegetation_AnnualCrop_WetRice,,,Nassreis
+531,Sunflowers,,Vegetation_AnnualCrop_Sunflowers,Vegetation_Field crops_BroadLeafRowCrop_Sunflowers,70232.0,Sonnenblumen zur Speiseölgewinnung
+534,SpecialCultureAnnual,Linen,Vegetation_AnnualCrop_SpecialCultureAnnual,Vegetation_Field crops_BroadLeafRowCrop_Linen,3126.0,Lein
+535,Hemp,Hemp,Vegetation_AnnualCrop_Hemp,Vegetation_Field crops_BroadLeafRowCrop_Hemp,1704.0,Hanf
+536,BroadBeans,,Vegetation_AnnualCrop_BroadBeans,Vegetation_Field crops_BroadLeafRowCrop_Field bean,11369.0,Bohnen und Wicken zur Körnergewinnung (z.B. Ackerbohnen) 
+537,ProteinPeas,,Vegetation_AnnualCrop_ProteinPeas,Vegetation_Field crops_BroadLeafRowCrop_Peas,22732.0,Erbsen zur Körnergewinnung (z.B. Eiweisserbsen)
+538,Lupines,,Vegetation_AnnualCrop_Lupines,Vegetation_Field crops_BroadLeafRowCrop_Lupine,308.0,Lupinen
+539,SpecialCultureAnnual,,Vegetation_AnnualCrop_SpecialCultureAnnual,Vegetation_Field crops_VegetableCrop_Pumpkin,1941.0,Ölkürbisse
+540,Chickpeas,,Vegetation_AnnualCrop_Chickpeas,,,Kichererbsen
+541,Tobacco,,Vegetation_AnnualCrop_Tobacco,Vegetation_Field crops_BroadLeafRowCrop_Tobacco,1788.0,Tabak
+542,Millet,Sorghum,Vegetation_AnnualCrop_Millet,Vegetation_Field crops_LargeGrainCereal_Sorghum,5272.0,Hirse
+543,SiloCereals,Grain,Vegetation_AnnualCrop_SiloCereals,Vegetation_Field crops_SmallGrainCereal_Grain,4677.0,Getreide siliert
+544,Camelina,,Vegetation_AnnualCrop_Camelina,Vegetation_Field crops_BroadLeafRowCrop_Linen,3126.0,Leindotter
+545,Vegetables,Vegetables,Vegetation_AnnualCrop_Vegetables,Vegetation_Field crops_VegetableCrop_Vegetables,188621.0,"Einjährige Freilandgemüse, ohne Konservengemüse"
+546,SpecialCultureAnnual,Vegetables,Vegetation_AnnualCrop_SpecialCultureAnnual,Vegetation_Field crops_VegetableCrop_Vegetables,188621.0,Freiland-Konservengemüse
+547,SpecialCultureAnnual,,Vegetation_AnnualCrop_SpecialCultureAnnual,Vegetation_Field crops_VegetableCrop_Chicory,4532.0,Wurzeln der Treibzichorie
+548,Buckwheat,,Vegetation_AnnualCrop_Buckwheat,Vegetation_Field crops_SmallGrainCereal_Buckwheat,1708.0,Buchweizen
+549,Sorghum,Sorghum,Vegetation_AnnualCrop_Sorghum,Vegetation_Field crops_LargeGrainCereal_Sorghum,5272.0,Sorghum
+550,,,nan,,,Übrige Ackerfläche
+551,SpecialCultureAnnual,Berries,Vegetation_AnnualCrop_SpecialCultureAnnual,Vegetation_Special crops_Berries_Berries,13969.0,Einjährige Beeren (z.B. Erdbeeren)
+552,SpecialCultureAnnual,,Vegetation_AnnualCrop_SpecialCultureAnnual,,,"Einjährige nachwachsende Rohstoffe (Kenaf, usw.)"
+553,SpecialCultureAnnual,,Vegetation_AnnualCrop_SpecialCultureAnnual,,,Einjährige Gewürz- und Medizinalpflanzen
+554,SpecialCultureAnnual,,Vegetation_AnnualCrop_SpecialCultureAnnual,,,"Einjährige gärtnerische Freilandkulturen (Blumen, Rollrasen usw.)"
+555,Grassland,Biodiversity encouragement area,Vegetation_Permaculture_Grassland,Vegetation_Grassland_BiodiversityArea_Biodiversity encouragement area,3494.0,Ackerschonstreifen
+556,Grassland,Fallow,Vegetation_Permaculture_Grassland,Vegetation_Special crops_Fallow_Fallow,27371.0,Buntbrache
+557,Grassland,Fallow,Vegetation_Permaculture_Grassland,Vegetation_Special crops_Fallow_Fallow,27371.0,Rotationsbrache
+559,Grassland,Meadow,Vegetation_Permaculture_Grassland,,,Saum auf Ackerflächen
+566,Poppy,,Vegetation_AnnualCrop_Poppy,,,Mohn
+567,Safflower,,Vegetation_AnnualCrop_Safflower,,,Saflor
+568,Lentils,,Vegetation_AnnualCrop_Lentils,,,Linsen
+569,CropMix,,Vegetation_AnnualCrop_CropMix,Vegetation_Field crops_CropMix_MixedCrop,6022.0,"Mischungen von Bohnen, Wicken, Erbsen, Kichererbsen und Lupinen mit Getreide oder Leindotter, mindestens 30 % Anteil Leguminosen bei der Ernte (zur Körnergewinnung)"
+570,CropMix,,Vegetation_AnnualCrop_CropMix,,,"Mischungen von Linsen mit Getreide oder Leindotter, mindestens 30 % Anteil Linsen bei der Ernte (zur Körnergewinnung)"
+572,Grassland,,Vegetation_Permaculture_Grassland,Vegetation_Grassland_BiodiversityArea_Biodiversity encouragement area,3494.0,Nützlingsstreifen auf offener Ackerfläche
+573,Mustard,,Vegetation_AnnualCrop_Mustard,Vegetation_Field crops_BroadLeafRowCrop_Mustard,174.0,Senf
+574,Quinoa,,Vegetation_AnnualCrop_Quinoa,,,Quinoa
+575,Hemp,,Vegetation_AnnualCrop_Hemp,,,Hanf zur Nutzung der Samen
+576,Hemp,,Vegetation_AnnualCrop_Hemp,,,Hanf zur Fasernutzung
+577,Hemp,,Vegetation_AnnualCrop_Hemp,,,Anderer Hanf
+578,Millet,,Vegetation_AnnualCrop_Millet,,,Hirse zur Körnergewinnung
+579,Millet,,Vegetation_AnnualCrop_Millet,,,Hirse zur Nutzung ganze Pflanze
+580,Sorghum,,Vegetation_AnnualCrop_Sorghum,,,Sorghum zur Körnergewinnung
+581,Sorghum,,Vegetation_AnnualCrop_Sorghum,,,Sorghum zur Nutzung ganze Pflanze
+590,SummerRapeseed,,Vegetation_AnnualCrop_SummerRapeseed,,,Sommerraps als nachwachsender Rohstoff
+591,WinterRapeseed,,Vegetation_PerennialCrop_WinterRapeseed,Vegetation_Field crops_BroadLeafRowCrop_WinterRapeseed,219773.0,Winterraps als nachwachsender Rohstoff
+592,Sunflowers,,Vegetation_AnnualCrop_Sunflowers,Vegetation_Field crops_BroadLeafRowCrop_Sunflowers,70232.0,Sonnenblumen als nachwachsender Rohstoff
+594,,,nan,,,"Offene Ackerfläche, beitragsberechtigt (regionsspezifische Biodiversitätsförderfläche)"
+595,,,nan,,,"Übrige offene Ackerfläche, nicht beitragsberechtigt (regionsspezifische Biodiversitätsförderfläche)"
+597,,,nan,,,"Übrige offene Ackerfläche, beitragsberechtigt"
+598,,,nan,,,"Übrige offene Ackerfläche, nicht beitragsberechtigt"
+601,Grassland,Meadow,Vegetation_Permaculture_Grassland,Vegetation_Grassland_Meadow_Meadow,3249831.0,Kunstwiesen (ohne Weiden)
+602,Grassland,Meadow,Vegetation_Permaculture_Grassland,Vegetation_Grassland_Meadow_Meadow,3249831.0,"Übrige Kunstwiese, beitragsberechtigt (z.B. Schweineweide, Geflügelweide)"
+611,Grassland,Meadow,Vegetation_Permaculture_Grassland,Vegetation_Grassland_Meadow_Meadow,3249831.0,Extensiv genutzte Wiesen (ohne Weiden)
+612,Grassland,Meadow,Vegetation_Permaculture_Grassland,Vegetation_Grassland_Meadow_Meadow,3249831.0,Wenig intensiv genutzte Wiesen (ohne Weiden)
+613,Grassland,Meadow,Vegetation_Permaculture_Grassland,Vegetation_Grassland_Meadow_Meadow,3249831.0,Übrige Dauerwiesen (ohne Weiden)
+616,Grassland,Pasture,Vegetation_Permaculture_Grassland,Vegetation_Grassland_Pasture_Pasture,505770.0,"Weiden (Heimweiden, übrige Weiden ohne Sömmerungsweiden)"
+617,Grassland,Pasture,Vegetation_Permaculture_Grassland,Vegetation_Grassland_Pasture_Pasture,505770.0,Extensiv genutzte Weiden
+618,Grassland,Pasture,Vegetation_Permaculture_Grassland,Vegetation_Grassland_Pasture_Pasture,505770.0,Waldweiden (ohne bewaldete Fläche)
+621,Grassland,Meadow,Vegetation_Permaculture_Grassland,Vegetation_Grassland_Meadow_Meadow,3249831.0,"Heuwiesen im Sömmerungsgebiet, Übrige Wiesen"
+622,Grassland,Meadow,Vegetation_Permaculture_Grassland,Vegetation_Grassland_Meadow_Meadow,3249831.0,"Heuwiesen im Sömmerungsgebiet, Typ extensiv genutzte Wiese"
+623,Grassland,,Vegetation_Permaculture_Grassland,,,"Heuwiesen im Sömmerungsgebiet, Typ wenig intensiv genutzte Wiese"
+625,Grassland,Pasture,Vegetation_Permaculture_Grassland,Vegetation_Grassland_Pasture_Pasture,505770.0,Waldweiden (ohne bewaldete Fläche)
+631,SpecialCultureAnnual,,Vegetation_AnnualCrop_SpecialCultureAnnual,Vegetation_Field crops_BroadLeafRowCrop_Legumes,2666.0,Futterleguminosen für die Samenproduktion (Vertragsanbau)
+632,Grassland,,Vegetation_Permaculture_Grassland,,,Futtergräser für die Samenproduktion (Vertragsanbau)
+634,Grassland,Meadow,Vegetation_Permaculture_Grassland,Vegetation_Grassland_Meadow_Meadow,3249831.0,Uferwiesen entlang von Fliessgewässern (ohne Weiden)
+635,Grassland,,Vegetation_Permaculture_Grassland,,,Uferwiesen (ohne Weiden)
+650,Grassland,,Vegetation_Permaculture_Grassland,,,"Übrige Dauerwiesen, beitragsberechtigt aggregiert"
+660,Grassland,,Vegetation_Permaculture_Grassland,,,"Übrige Dauerweiden, beitragsberechtigt aggregiert"
+693,Grassland,,Vegetation_Permaculture_Grassland,,,Regionsspezifische Biodiversitätsförderflächen (Weiden)
+694,Grassland,,Vegetation_Permaculture_Grassland,,,Regionsspezifische Biodiversitätsförderfläche (Grünflächen ohne Weiden)
+697,Grassland,,Vegetation_Permaculture_Grassland,,,"Übrige Grünfläche (Dauergrünfläche), beitragsberechtigt"
+698,Grassland,,Vegetation_Permaculture_Grassland,,,"Übrige Grünfläche (Dauergrünflächen), nicht beitragsberechtigt"
+701,Vines,Vines,Vegetation_Permaculture_Vines,Vegetation_Orchards_OrchardCrop_Vines,56337.0,Reben
+702,Orchards,Orchards,Vegetation_Permaculture_Orchards,Vegetation_Orchards_OrchardCrop_Apples,26699.0,Obstanlagen (Äpfel)
+703,Orchards,Orchards,Vegetation_Permaculture_Orchards,Vegetation_Orchards_OrchardCrop_Pears,4442.0,Obstanlagen (Birnen)
+704,Orchards,,Vegetation_Permaculture_Orchards,Vegetation_Orchards_OrchardCrop_StoneFruit,6038.0,Obstanlagen (Steinobst)
+705,SpecialCulturePerennial,Berries,Vegetation_PerennialCrop_SpecialCulturePerennial,Vegetation_Special crops_Berries_Berries,13969.0,Mehrjährige Beeren
+706,SpecialCulturePerennial,,Vegetation_PerennialCrop_SpecialCulturePerennial,,,Mehrjährige Gewürz- und Medizinalpflanzen
+707,SpecialCulturePerennial,,Vegetation_PerennialCrop_SpecialCulturePerennial,,,"Mehrjährige nachwachsende Rohstoffe (Chinaschilf, usw.)"
+708,SpecialCulturePerma,Hops,Vegetation_Permaculture_SpecialCulturePerma,Vegetation_Orchards_OrchardCrop_Hops,774.0,Hopfen
+709,SpecialCultureAnnual,,Vegetation_AnnualCrop_SpecialCultureAnnual,,,Rhabarber
+710,SpecialCulturePerennial,,Vegetation_PerennialCrop_SpecialCulturePerennial,,,Spargel
+711,SpecialCultureAnnual,,Vegetation_AnnualCrop_SpecialCultureAnnual,,,Pilze (Freiland)
+712,SpecialCulturePerma,,Vegetation_Permaculture_SpecialCulturePerma,Vegetation_Orchards_TreeCrop_TreeCrop,8906.0,Christbäume
+713,SpecialCulturePerma,,Vegetation_Permaculture_SpecialCulturePerma,Vegetation_Orchards_TreeCrop_TreeCrop,8906.0,Baumschule von Forstpflanzen ausserhalb der Forstzone
+714,SpecialCulturePerma,,Vegetation_Permaculture_SpecialCulturePerma,,,"Ziersträucher, Ziergehölze und Zierstauden"
+715,SpecialCulturePerma,,Vegetation_Permaculture_SpecialCulturePerma,,,"Übrige Baumschulen (Rosen, Früchte, usw.)"
+717,Vines,Vines,Vegetation_Permaculture_Vines,Vegetation_Orchards_OrchardCrop_Vines,56337.0,Rebflächen mit natürlicher Artenvielfalt
+718,Orchards,,Vegetation_Permaculture_Orchards,,,Trüffelanlagen
+719,Orchards,,Vegetation_Permaculture_Orchards,,,Maulbeerbaumanlagen (Fütterung Seidenraupen)
+720,Chestnuts,,Vegetation_Permaculture_Chestnuts,Vegetation_Orchards_OrchardCrop_Chestnut,11.0,Gepflegte Selven (Edelkastanienbäume)
+721,SpecialCulturePerma,,Vegetation_Permaculture_SpecialCulturePerma,,,Mehrjährige gärtnerische Freilandkulturen (nicht im Gewächshaus)
+722,Orchards,,Vegetation_Permaculture_Orchards,Vegetation_Orchards_OrchardCrop_Vines,56337.0,Baumschulen von Reben
+723,SpecialCulturePerma,,Vegetation_Permaculture_SpecialCulturePerma,,,Baumschulen von Obst und Beeren
+724,SpecialCulturePerma,,Vegetation_Permaculture_SpecialCulturePerma,,,"Übrige Baumschulen (Rosen, Zierstauden, usw.)"
+725,SpecialCulturePerma,,Vegetation_Permaculture_SpecialCulturePerma,,,Permakultur
+730,Orchards,,Vegetation_Permaculture_Orchards,,,Obstanlagen aggregiert
+731,Orchards,,Vegetation_Permaculture_Orchards,,,"Andere Obstanlagen (Kiwis, Holunder usw.)"
+735,Vines,,Vegetation_Permaculture_Vines,Vegetation_Orchards_OrchardCrop_Vines,56337.0,Reben (regionsspezifische Biodiversitätsförderflächen)
+750,Grassland,,Vegetation_Permaculture_Grassland,,,"Übrige Dauerkulturen, beitragsberechtigt, aggregiert"
+760,Grassland,,Vegetation_Permaculture_Grassland,,,"Dauerkulturen, nicht beitragsberechtigt, aggregiert"
+797,Grassland,,Vegetation_Permaculture_Grassland,,,"Übrige Flächen mit Dauerkulturen, beitragsberechtigt"
+798,Grassland,,Vegetation_Permaculture_Grassland,,,"Übrige Flächen mit Dauerkulturen, nicht beitragsberechtigt"
+801,,Vegetables,nan,,,Gemüsekulturen in Gewächshäusern mit festem Fundament
+802,,Special cultures,nan,,,Übrige Spezialkulturen in Gewächshäusern mit festem Fundament
+803,,Special cultures,nan,,,Gärtnerische Kulturen in Gewächshäusern mit festem Fundament
+804,,,nan,,,Beerenkulturen in Gewächshäusern mit festem Fundament
+806,,Vegetables,nan,,,Gemüsekulturen in geschütztem Anbau ohne festes Fundament
+807,,Special cultures,nan,,,Übrige Spezialkulturen in geschütztem Anbau ohne festes Fundament
+808,,Special cultures,nan,,,Gärtnerische Kulturen in geschütztem Anbau ohne festes Fundament
+810,,,nan,,,Pilze in geschütztem Anbau mit festem Fundament
+811,,,nan,,,Gemüsekulturen in geschütztem Anbau ohne festes Fundament; im gewachsenen Boden
+812,,,nan,,,Gemüsekulturen in geschütztem Anbau ohne festes Fundament; auf Pflanztischen oder -gestellen
+813,,,nan,,,Beerenkulturen in geschütztem Anbau ohne festes Fundament; im gewachsenen Boden
+814,,,nan,,,Beerenkulturen in geschütztem Anbau ohne festes Fundament; auf Pflanztischen oder -gestellen
+830,,,nan,,,"Kulturen in ganzjährig geschütztem Anbau, beitragsberechtigt aggregiert"
+840,,,nan,,,"Kulturen in ganzjährig geschütztem Anbau, nicht beitragsberechtigt aggregiert"
+847,,,nan,,,"Übrige Kulturen in geschütztem Anbau ohne festes Fundament, beitragsberechtigt"
+848,,,nan,,,Übrige Kulturen in geschütztem Anbau mit festem Fundament
+849,,Special cultures,nan,,,"Übrige Kulturen in geschütztem Anbau ohne festes Fundament, nicht beitragsberechtigt"
+851,,,nan,,,Streueflächen in der LN
+852,SpecialCulturePerma,Hedge,Vegetation_Permaculture_SpecialCulturePerma,Vegetation_Special crops_Hedge_Hedge,27329.0,"Hecken-, Feld- und Ufergehölze (mit Krautsaum)"
+857,SpecialCulturePerma,Hedge,Vegetation_Permaculture_SpecialCulturePerma,Vegetation_Special crops_Hedge_Hedge,27329.0,"Hecken-, Feld- und Ufergehölze (mit Pufferstreifen)"
+858,SpecialCulturePerma,Hedge,Vegetation_Permaculture_SpecialCulturePerma,Vegetation_Special crops_Hedge_Hedge,27329.0,"Hecken-, Feld- und Ufergehölze (mit Pufferstreifen) (regionsspezifische Biodiversitätsförderfläche)"
+897,,Multiple,nan,,,"Übrige Flächen innerhalb der LN, beitragsberechtigt"
+898,,Multiple,nan,,,"Übrige Flächen innerhalb der LN, nicht beitragsberechtigt"
+901,,Forest,nan,Vegetation_Forest_Forest_Forest,3417.0,Wald
+902,SpecialCulturePerma,Multiple,Vegetation_Permaculture_SpecialCulturePerma,Vegetation_Special crops_Multiple_Multiple,446.0,"Übrige unproduktive Flächen (z.B. gemulchte Flächen, stark verunkrautete Flächen, Hecken ohne Pufferstreifen)"
+903,,Non agriculture,nan,,,"Flächen ohne landwirtschaftliche Hauptzweckbestimmung (erschlossenes Bauland, Spiel-, Reit-, Camping-, Golf-, Flug- und Militärplätze oder ausgemarchte Bereiche von Eisenbahnen, öffentlichen Strassen und Gewässern)"
+904,,Waters,nan,,,"Wassergräben, Tümpel, Teiche"
+905,,Non agriculture,nan,,,"Ruderalflächen, Steinhaufen und -wälle"
+906,,Multiple,nan,,,Trockenmauern
+907,,,nan,,,"Unbefestigte, natürliche Wege"
+908,Grassland,Biodiversity encouragement area,Vegetation_Permaculture_Grassland,Vegetation_Grassland_BiodiversityArea_Biodiversity encouragement area,3494.0,Regionsspezifische Biodiversitätsförderflächen
+909,SpecialCulturePerma,Gardens,Vegetation_Permaculture_SpecialCulturePerma,Vegetation_Special crops_Gardens_Gardens,38.0,Hausgärten
+911,,,nan,,,"Landwirtschaftliche Produktion in Gebäuden (z. B. Champignon, Brüsseler)"
+921,Orchards,,Vegetation_Permaculture_Orchards,,,Hochstamm-Feldobstbäume (Punkte oder Flächen)
+922,Orchards,,Vegetation_Permaculture_Orchards,,,Nussbäume (Punkte oder Flächen)
+923,Chestnuts,,Vegetation_Permaculture_Chestnuts,,,Edelkastanienbäume
+924,Orchards,,Vegetation_Permaculture_Orchards,,,Einheimische standortgerechte Einzelbäume und Alleen (Punkte oder Flächen)
+926,,,nan,,,Andere Bäume
+927,Orchards,,Vegetation_Permaculture_Orchards,,,Andere Bäume (regionsspezifische Biodiversitätsförderfläche)
+928,,,nan,,,Andere Elemente (regionsspezifische Biodiversitätsförderfläche)
+930,Grassland,Pasture,Vegetation_Permaculture_Grassland,Vegetation_Grassland_Pasture_Pasture,505770.0,Sömmerungsweiden
+933,Grassland,,Vegetation_Permaculture_Grassland,,,Gemeinschaftsweiden
+935,Grassland,,Vegetation_Permaculture_Grassland,,,Heuwiesen mit Zufütterung während der Sömmerung
+936,,,nan,,,Streueflächen im Sömmerungsgebiet
+950,Grassland,,Vegetation_Permaculture_Grassland,,,Ackerschonstreifen
+951,SpecialCultureAnnual,,Vegetation_AnnualCrop_SpecialCultureAnnual,,,Getreide in weiter Reihen
+998,,Non agriculture,nan,,,Übrige Flächen ausserhalb der LN und SF

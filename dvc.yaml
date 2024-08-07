@@ -7,6 +7,7 @@ stages:
     - paths.satellite
     - zueri_crop.bbox
     - search_dates
+    - number_of_timesteps
     outs:
     - data/satellite
 
@@ -23,6 +24,7 @@ stages:
     - data/satellite
     - data/labels_hierarchy.csv
     - data/labels_hierarchy_seasonality.csv
+    - data/labels_hierarchy_seasonality_reduced.csv
     params:
     - zueri_crop.bbox
     - max_cloud_cover
@@ -50,7 +52,7 @@ stages:
     - number_of_folds
     - fold_split_mode
     - distribution_transform_mode
-    - number_of_timespans
+    - number_of_timesteps
     - paths.satellite
     - paths.labels
     - paths.labels_hierarchy
@@ -68,7 +70,7 @@ stages:
     params:
     - paths.chips
     - paths.labels_hierarchy
-    - number_of_timespans
+    - number_of_timesteps
     - number_of_bands
     - number_of_folds
     outs:

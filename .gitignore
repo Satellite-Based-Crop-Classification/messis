@@ -171,3 +171,4 @@ archive/zueri-crop
 *.ckpt
 *.output.ipynb
 model_training.py
+scratch.ipynb
