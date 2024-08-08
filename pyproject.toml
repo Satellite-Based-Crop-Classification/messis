@@ -38,6 +38,7 @@ lion-pytorch = "^0.2.2"
 torchview = "^0.2.6"
 kaleido = "0.2.1"
 latextable = "^1.0.1"
+dvc-ssh = "^4.1.1"
 
 
 [tool.poetry.group.dev.dependencies]
