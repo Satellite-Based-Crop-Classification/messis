@@ -172,3 +172,4 @@ archive/zueri-crop
 *.output.ipynb
 model_training.py
 scratch.ipynb
+notebooks/poster_assets/*
