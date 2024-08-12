@@ -13,14 +13,38 @@ def app():
     # Load GeoJSON files
     zh_gdf = gpd.read_file("./data/fields_zh_filtered.geojson")
 
-    # Load satellite image
+    # Load satellite image
     geotiff_path = "../data/stacked_features.tif"
 
-    # Select columns 
+    # Select columns 
     zh_gdf = zh_gdf[["GEMEINDE", "FLAECHE", "NUTZUNG", "NUTZUNGSCO", "JAHR", "geometry"]]
 
-    # Create checkboxes to activate/deactivate the GeosJSON layers
+    # Create checkboxes to activate/deactivate the GeoJSON layers
     show_zh = st.sidebar.checkbox("Show ZH Fields", True)
+
+    # Add a slider for timestep selection
+    timestep = st.sidebar.slider("Select Timestep", 1, 9, 5)  # Default timestep is 1
+
+    # Add a dropdown for band selection
+    band_options = {
+        "RGB": [1, 2, 3],  # Adjust indices based on the actual bands in your GeoTIFF
+        "NIR": [4],
+        "SWIR1": [5],
+        "SWIR2": [6]
+    }
+    selected_band = st.sidebar.selectbox("Select Band to Display", options=list(band_options.keys()), index=0)  # Default is RGB
+
+    # vmin vmax per band option
+    vmin_vmax = { # Values are based on the actual pixel values in the stacked_features GeoTIFF
+        "RGB": (89, 1878),
+        "NIR": (165, 5468),
+        "SWIR1": (120, 3361),
+        "SWIR2": (94, 2700)
+    }
+
+    # Calculate the band indices based on the selected timestep
+    selected_bands = [band + (timestep - 1) * 6 for band in band_options[selected_band]]
+    print(selected_bands)
 
     # Initialize the map
     m = leafmap.Map(center=(47.5, 8.5), zoom=10)
@@ -33,14 +57,14 @@ def app():
             random_color_column="NUTZUNGSCO",
         )
 
-        # Add the GeoTIFF to the map
+        # Add the GeoTIFF to the map with the selected bands and timestep
         m.add_raster(
             geotiff_path,
             layer_name="Satellite Image",
-            bands=[31, 32, 33],  # Specify the bands: [Red, Green, Blue]
+            bands=selected_bands,  # Specify the bands based on user selection
             fit_bounds=True,  # Fit the map bounds to the raster,
-            vmin=50,  # Adjust this value to increase brightness
-            vmax=2000,  # Adjust this value to control the upper range
+            vmin=vmin_vmax[selected_band][0],  # Adjust this value to control the lower range
+            vmax=vmin_vmax[selected_band][1],  # Adjust this value to control the upper range
         )
 
     # Display the map in the Streamlit app
