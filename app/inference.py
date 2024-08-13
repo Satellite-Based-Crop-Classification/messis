@@ -1,16 +1,18 @@
+import os
+import torch
+import yaml
+import json
 import rasterio
 from rasterio.windows import Window
 from rasterio.transform import rowcol
 from pyproj import Transformer
 from torchvision import transforms
-from transformers import PretrainedConfig
-
 import numpy as np
-import torch
-import yaml
-import os
+from rasterio.features import shapes
+from shapely.geometry import shape
+import geopandas as gpd
 
-from messis.messis import Messis
+from messis.messis import LogConfusionMatrix
 
 class InferenceDataLoader:
     def __init__(self, features_path, labels_path, field_ids_path, stats_path, window_size=224, n_timesteps=3, fold_indices=None, debug=False):
@@ -142,3 +144,87 @@ class InferenceDataLoader:
         # Return the prepared data along with transform and CRS
         return prepared_features_data, label_data, field_ids_data, features_transform, features_crs
     
+def crop_predictions_to_gdf(field_ids, targets, predictions, transform, crs, class_names):
+    """
+    Convert field_ids, targets, and predictions tensors to field polygons with corresponding class reference.
+    
+    :param field_ids: PyTorch tensor of shape (1, 224, 224) representing individual fields
+    :param targets: PyTorch tensor of shape (1, 224, 224) for targets
+    :param predictions: PyTorch tensor of shape (1, 224, 224) for predictions
+    :param transform: Affine transform for georeferencing
+    :param crs: Coordinate reference system (CRS) of the data
+    :param class_names: Dictionary mapping class indices to class names
+    :return: GeoPandas DataFrame with polygons, prediction class labels, and target class labels
+    """
+    field_array = field_ids.squeeze().cpu().numpy().astype(np.int32)
+    target_array = targets.squeeze().cpu().numpy().astype(np.int8)
+    pred_array = predictions.squeeze().cpu().numpy().astype(np.int8)
+
+    polygons = []
+    field_values = []
+    target_values = []
+    pred_values = []
+
+    for geom, field_value in shapes(field_array, transform=transform):
+        polygons.append(shape(geom))
+        field_values.append(field_value)
+
+        # Get a single value from the field area for targets and predictions
+        target_value = target_array[field_array == field_value][0]
+        pred_value = pred_array[field_array == field_value][0]
+        
+        target_values.append(target_value)
+        pred_values.append(pred_value)
+
+    gdf = gpd.GeoDataFrame({
+        'geometry': polygons,
+        'field_id': field_values,
+        'target': target_values,
+        'prediction': pred_values
+    }, crs=crs)
+
+    gdf['prediction_class'] = gdf['prediction'].apply(lambda x: class_names[x])
+    gdf['target_class'] = gdf['target'].apply(lambda x: class_names[x])
+
+    gdf['correct'] = gdf['target'] == gdf['prediction']
+
+    gdf = gdf[gdf.geometry.area > 250] # Threshold for small polygons
+
+    return gdf
+
+def perform_inference(lon, lat, model, config, debug=False):
+    features_path = "../data/stacked_features.tif"
+    labels_path = "../data/labels.tif"
+    field_ids_path = "../data/field_ids.tif"
+    stats_path = "../data/chips_stats.yaml"
+
+    loader = InferenceDataLoader(features_path, labels_path, field_ids_path, stats_path, n_timesteps=9, fold_indices=[0], debug=True)
+
+    # Coordinates must be in EPSG:4326 and lon lat order - are converted to the CRS of the raster
+    satellite_data, label_data, field_ids_data, features_transform, features_crs = loader.get_data(lon, lat)
+
+    if debug:
+        # Print the shape of the extracted data
+        print(satellite_data.shape)
+        print(label_data.shape)
+        print(field_ids_data.shape)
+
+    with open('../data/dataset_info.json', 'r') as file:
+        dataset_info = json.load(file)
+    class_names = dataset_info['tier3']
+
+    tiers_dict = {k: v for k, v in config.hparams.get('heads_spec').items() if v.get('is_metrics_tier', False)}
+    tiers = list(tiers_dict.keys())
+
+    # Perform inference
+    model.eval()
+    with torch.no_grad():
+        output = model(satellite_data)['tier3_refinement_head']
+
+    pixelwise_outputs_stacked, majority_outputs_stacked = LogConfusionMatrix.get_pixelwise_and_majority_outputs(output, tiers, field_ids=field_ids_data, dataset_info=dataset_info)
+    majority_tier3_predictions = majority_outputs_stacked[2] # Tier 3 predictions
+
+    # Convert the predictions to a GeoDataFrame
+    gdf = crop_predictions_to_gdf(field_ids_data, label_data, majority_tier3_predictions, features_transform, features_crs, class_names)
+
+    return gdf
