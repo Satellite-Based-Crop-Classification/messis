@@ -2,17 +2,17 @@ import rasterio
 from rasterio.windows import Window
 from rasterio.transform import rowcol
 from torchvision import transforms
-
-from transformers import PretrainedConfig
-from messis.messis import Messis
+from pyproj import Transformer
 
 import torch
 import yaml
 import os
 
 class InferenceDataLoader:
-    def __init__(self, geotiff_path, stats_path, window_size=224, n_timesteps=3, fold_indices=None, debug=False):
-        self.geotiff_path = geotiff_path
+    def __init__(self, features_path, labels_path, field_ids_path, stats_path, window_size=224, n_timesteps=3, fold_indices=None, debug=False):
+        self.features_path = features_path
+        self.labels_path = labels_path
+        self.field_ids_path = field_ids_path
         self.stats_path = stats_path
         self.window_size = window_size
         self.n_timesteps = n_timesteps
@@ -21,6 +21,9 @@ class InferenceDataLoader:
         
         # Load normalization stats
         self.means, self.stds = self.load_stats()
+
+        # Set up the transformer for coordinate conversion
+        self.transformer = Transformer.from_crs("EPSG:4326", "EPSG:32632", always_xy=True)
 
     def load_stats(self):
         """Load normalization statistics for dataset from YAML file."""
@@ -52,11 +55,14 @@ class InferenceDataLoader:
         
         return means * self.n_timesteps, stds * self.n_timesteps
 
-    def extract_window(self, lon, lat):
-        """Extract a 224x224 window centered on the clicked coordinates (lon, lat)."""
-        with rasterio.open(self.geotiff_path) as src:
+    def extract_window(self, path, lon, lat):
+        """Extract a 224x224 window centered on the clicked coordinates (lon, lat) from the specified GeoTIFF."""
+        with rasterio.open(path) as src:
+            # Transform the coordinates from WGS84 to UTM (EPSG:32632)
+            utm_x, utm_y = self.transformer.transform(lon, lat)
+            
             try:
-                px, py = rowcol(src.transform, lon, lat)
+                px, py = rowcol(src.transform, utm_x, utm_y)
             except ValueError:
                 raise ValueError("Coordinates out of bounds for this raster.")
             
@@ -79,39 +85,45 @@ class InferenceDataLoader:
             
             window = Window(col_off, row_off, self.window_size, self.window_size)
             window_data = src.read(window=window)
-            
-            return window_data
+            window_transform = src.window_transform(window)
+            crs = src.crs
 
-    def prepare_data_for_model(self, window_data):
+            if self.debug:
+                print(f"Extracted window {col_off} {row_off} {self.window_size} data from {path}")
+                print(f"Min: {window_data.min()}, Max: {window_data.max()}")
+            
+            return window_data, window_transform, crs
+
+    def prepare_data_for_model(self, features_data):
         """Prepare the window data for model inference."""
         # Convert to tensor
-        window_data = torch.tensor(window_data, dtype=torch.float32)
+        features_data = torch.tensor(features_data, dtype=torch.float32)
         
         # Normalize
         normalize = transforms.Normalize(mean=self.means, std=self.stds)
-        window_data = normalize(window_data)
+        features_data = normalize(features_data)
         
         # Permute the dimensions if needed
-        height, width = window_data.shape[-2:]
-        window_data = window_data.view(self.n_timesteps, 6, height, width).permute(1, 0, 2, 3)
+        height, width = features_data.shape[-2:]
+        features_data = features_data.view(self.n_timesteps, 6, height, width).permute(1, 0, 2, 3)
         
         # Add batch dimension
-        window_data = window_data.unsqueeze(0)
+        features_data = features_data.unsqueeze(0)
         
-        return window_data
+        return features_data
 
     def get_data(self, lon, lat):
-        """Extract, normalize, and prepare data for inference."""
-        window_data = self.extract_window(lon, lat)
-        prepared_data = self.prepare_data_for_model(window_data)
-        return prepared_data
-
-# Example usage:
-geotiff_path = "../data/stacked_features.tif"
-stats_path = "../data/chips_stats.yaml"
-loader = InferenceDataLoader(geotiff_path, stats_path, n_timesteps=9, fold_indices=[0])
-
-# Get data for a specific latitude and longitude
-prepared_data = loader.get_data(8.759193, 47.373942)
-
-print(prepared_data.shape)
+        """Extract, normalize, and prepare data for inference, including labels and field IDs."""
+        # Extract data from the GeoTIFF, labels, and field IDs
+        features_data, features_transform = self.extract_window(self.features_path, lon, lat)
+        label_data = self.extract_window(self.labels_path, lon, lat)
+        field_ids_data = self.extract_window(self.field_ids_path, lon, lat)
+        
+        # Prepare the window data for the model
+        prepared_features_data = self.prepare_data_for_model(features_data)
+        
+        # Convert labels and field_ids to tensors (without normalization)
+        label_data = torch.tensor(label_data, dtype=torch.long)
+        field_ids_data = torch.tensor(field_ids_data, dtype=torch.long)
+        
+        return prepared_features_data, label_data, field_ids_data
