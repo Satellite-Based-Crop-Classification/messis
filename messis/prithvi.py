@@ -486,6 +486,9 @@ class TemporalViTEncoder(nn.Module):
         if self.pretrained:
             if self.pretrained.endswith('.safetensors'):
                 self._load_safetensors_weights()
+            elif self.pretrained == 'huggingface':
+                print("TemporalViTEncoder | Using HuggingFace pretrained weights.")
+                pass
             else:
                 self._load_pt_weights()
         else:

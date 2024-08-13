@@ -1,16 +1,16 @@
 import folium
 import geopandas as gpd
 import streamlit as st
-from streamlit.components.v1 import html
 import leafmap.foliumap as leafmap
 import rasterio
-from transformers import PretrainedConfig
+# from transformers import PretrainedConfig
 from messis.messis import Messis  # Assuming you have a custom model class
 import numpy as np
-from folium import Map, Marker
+from folium import Map, Marker, Icon
 from folium.elements import MacroElement
 from jinja2 import Template
 from streamlit_js_eval import streamlit_js_eval
+import torch
 
 st.set_page_config(layout="wide")
 
@@ -18,7 +18,7 @@ GEOTIFF_PATH = "../data/stacked_features.tif"
 
 # Load the model
 # config['hparams']['backbone_weights_path'] = 'huggingface'
-config = PretrainedConfig.from_pretrained('crop-classification/messis', revision='47d9ca4')
+# config = PretrainedConfig.from_pretrained('crop-classification/messis', revision='47d9ca4')
 model = Messis.from_pretrained('crop-classification/messis', cache_dir='./hf_cache/', revision='47d9ca4')
 
 def run_inference_on_window(window_data):
@@ -26,6 +26,8 @@ def run_inference_on_window(window_data):
     Run the inference on the extracted window data.
     """
     inputs = np.expand_dims(window_data, axis=0)  # Add batch dimension
+    inputs = torch.tensor(inputs).float()
+    print(inputs.shape)
     outputs = model(inputs)
     return outputs
 
@@ -88,6 +90,7 @@ def app():
 
     # Load GeoJSON files
     zh_gdf = gpd.read_file("./data/fields_zh_filtered.geojson")
+    predictions = gpd.read_file("./data/predictions.geojson")
 
     # Load satellite image
     geotiff_path = "../data/stacked_features.tif"
@@ -110,6 +113,12 @@ def app():
     }
     selected_band = st.sidebar.selectbox("Select Band to Display", options=list(band_options.keys()), index=0)  # Default is RGB
 
+    # streamlit textfield for coordinates
+    poi_coords = st.sidebar.text_input("POI Coordinates", "8.635254,47.381789")
+    lon, lat = [float(coord) for coord in poi_coords.split(",")]
+    poi_icon = Icon(color="red", prefix="fa", icon="crosshairs")
+    # run_inference(lat, lon)
+
     # vmin vmax per band option
     vmin_vmax = { # Values are based on the actual pixel values in the stacked_features GeoTIFF
         "RGB": (89, 1878),
@@ -123,30 +132,44 @@ def app():
     print(selected_bands)
 
     data = st.file_uploader(
-        "Upload a GeoJSON file to use as an ROI. Customize timelapse parameters and then click the Submit button 😇👇",
-        type=["geojson", "kml", "zip"],
+        "Upload a GeoJSON file to use as an ROI. 👇",
+        type=["geojson"],
     )
 
     # Initialize the map
-    m = leafmap.Map(center=(47.5, 8.5), zoom=10, draw_control=True, draw_export=True)
+    m = leafmap.Map(center=(47.5, 8.5), zoom=10, draw_control=True, draw_export=False)
 
     # Add the GeoDataFrames to the map based on user selection
-    if show_zh:
-        m.add_gdf(
-            zh_gdf, 
-            layer_name="ZH Fields",
-            random_color_column="NUTZUNGSCO",
-        )
+    m.add_gdf(
+        zh_gdf, 
+        layer_name="ZH Fields"
+    )
 
-        # Add the GeoTIFF to the map with the selected bands and timestep
-        m.add_raster(
-            geotiff_path,
-            layer_name="Satellite Image",
-            bands=selected_bands,  # Specify the bands based on user selection
-            fit_bounds=True,  # Fit the map bounds to the raster,
-            vmin=vmin_vmax[selected_band][0],  # Adjust this value to control the lower range
-            vmax=vmin_vmax[selected_band][1],  # Adjust this value to control the upper range
-        )
+    # m.add_gdf(
+    #     predictions, 
+    #     layer_name="Predictions",
+    #     style_callback=lambda feat: {"fillColor": "#ff7800", "backgroundColor": "#ff7800", "color": "#ff7800", "opacity": 0.8}
+    # )
+
+    m.add_data(predictions,
+       layer_name = "Predictions",
+       column="correct",
+       add_legend=False,
+       style_function=lambda x: {"fillColor": "green" if x["properties"]["correct"] == True else "red", "color": "black", "weight": 0, "fillOpacity": 0.25},
+    )
+
+    # Add the GeoTIFF to the map with the selected bands and timestep
+    m.add_raster(
+        geotiff_path,
+        layer_name="Satellite Image",
+        bands=selected_bands,  # Specify the bands based on user selection
+        fit_bounds=True,  # Fit the map bounds to the raster,
+        vmin=vmin_vmax[selected_band][0],  # Adjust this value to control the lower range
+        vmax=vmin_vmax[selected_band][1],  # Adjust this value to control the upper range
+    )
+
+    # Show the POI on the map
+    m.add_marker(location=[lat, lon], popup="Point of Interest", layer_name="POI", icon=poi_icon)
 
     if data:
         gdf = uploaded_file_to_gdf(data)
@@ -160,7 +183,7 @@ def app():
             return
 
     # Display the map in the Streamlit app
-    m.to_streamlit(width=950, height=600)
+    m.to_streamlit()
 
 if __name__ == "__main__":
     app()

@@ -1,12 +1,16 @@
 import rasterio
 from rasterio.windows import Window
 from rasterio.transform import rowcol
-from torchvision import transforms
 from pyproj import Transformer
+from torchvision import transforms
+from transformers import PretrainedConfig
 
+import numpy as np
 import torch
 import yaml
 import os
+
+from messis.messis import Messis
 
 class InferenceDataLoader:
     def __init__(self, features_path, labels_path, field_ids_path, stats_path, window_size=224, n_timesteps=3, fold_indices=None, debug=False):
@@ -55,8 +59,8 @@ class InferenceDataLoader:
         
         return means * self.n_timesteps, stds * self.n_timesteps
 
-    def extract_window(self, path, lon, lat):
-        """Extract a 224x224 window centered on the clicked coordinates (lon, lat) from the specified GeoTIFF."""
+    def identify_window(self, path, lon, lat):
+        """Identify the 224x224 window centered on the clicked coordinates (lon, lat) from the specified GeoTIFF."""
         with rasterio.open(path) as src:
             # Transform the coordinates from WGS84 to UTM (EPSG:32632)
             utm_x, utm_y = self.transformer.transform(lon, lat)
@@ -84,15 +88,21 @@ class InferenceDataLoader:
                 row_off = src.height - self.window_size
             
             window = Window(col_off, row_off, self.window_size, self.window_size)
-            window_data = src.read(window=window)
             window_transform = src.window_transform(window)
             crs = src.crs
 
-            if self.debug:
-                print(f"Extracted window {col_off} {row_off} {self.window_size} data from {path}")
-                print(f"Min: {window_data.min()}, Max: {window_data.max()}")
-            
-            return window_data, window_transform, crs
+            return window, window_transform, crs
+
+    def extract_window(self, path, window):
+        """Extract data from the specified window from the GeoTIFF."""
+        with rasterio.open(path) as src:
+            window_data = src.read(window=window)
+
+        if self.debug:
+            print(f"Extracted window data from {path}")
+            print(f"Min: {window_data.min()}, Max: {window_data.max()}")
+        
+        return window_data
 
     def prepare_data_for_model(self, features_data):
         """Prepare the window data for model inference."""
@@ -114,10 +124,13 @@ class InferenceDataLoader:
 
     def get_data(self, lon, lat):
         """Extract, normalize, and prepare data for inference, including labels and field IDs."""
+        # Identify the window and get the georeferencing information
+        window, features_transform, features_crs = self.identify_window(self.features_path, lon, lat)
+        
         # Extract data from the GeoTIFF, labels, and field IDs
-        features_data, features_transform = self.extract_window(self.features_path, lon, lat)
-        label_data = self.extract_window(self.labels_path, lon, lat)
-        field_ids_data = self.extract_window(self.field_ids_path, lon, lat)
+        features_data = self.extract_window(self.features_path, window)
+        label_data = self.extract_window(self.labels_path, window)
+        field_ids_data = self.extract_window(self.field_ids_path, window)
         
         # Prepare the window data for the model
         prepared_features_data = self.prepare_data_for_model(features_data)
@@ -126,4 +139,6 @@ class InferenceDataLoader:
         label_data = torch.tensor(label_data, dtype=torch.long)
         field_ids_data = torch.tensor(field_ids_data, dtype=torch.long)
         
-        return prepared_features_data, label_data, field_ids_data
+        # Return the prepared data along with transform and CRS
+        return prepared_features_data, label_data, field_ids_data, features_transform, features_crs
+    
