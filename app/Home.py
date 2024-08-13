@@ -9,7 +9,7 @@ def main():
 
     st.page_link("Home.py", label="Home", icon="🏠")
     st.page_link("pages/1_Select_Location.py", label="Select Location", icon="📍")
-    st.page_link("pages/2_Perform_Inference.py", label="Perform Inference", icon="🔍")
+    st.page_link("pages/2_Perform_Crop_Classification.py", label="Perform Crop Classification", icon="🔍")
 
 if __name__ == "__main__":
     main()

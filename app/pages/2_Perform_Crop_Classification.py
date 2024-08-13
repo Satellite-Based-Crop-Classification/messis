@@ -19,9 +19,7 @@ def load_model():
 model, config = load_model()
 
 def perform_inference_step():
-    st.title("Step 2: Perform Inference")
-
-    st.sidebar.header("Settings")
+    st.title("Step 2: Perform Crop Classification")
 
     if "selected_location" not in st.session_state:
         st.error("No location selected. Please select a location first.")
@@ -29,7 +27,9 @@ def perform_inference_step():
         return
 
     lat, lon = st.session_state["selected_location"]
-    st.write(f"Using POI: Latitude {lat}, Longitude {lon}")
+
+    # Sidebar
+    st.sidebar.header("Settings")
 
     # Timestep Slider
     timestep = st.sidebar.slider("Select Timestep", 1, 9, 5)
@@ -52,11 +52,22 @@ def perform_inference_step():
     # Calculate the band indices based on the selected timestep
     selected_bands = [band + (timestep - 1) * 6 for band in band_options[selected_band]]
     
+    instructions = """
+    Click the button "Perform Crop Classification".
+
+    _Note:_ 
+    - Messis will classify the crop types for the fields in your selected location.
+    - Hover over the fields to see the predicted and true crop type.
+    - The satellite images might take a few seconds to load.
+    """
+    st.sidebar.header("Instructions")
+    st.sidebar.markdown(instructions)
+
     # Initialize the map
     m = leafmap.Map(center=(lat, lon), zoom=10, draw_control=False)
 
     # Perform inference
-    if st.button("Run Inference"):
+    if st.sidebar.button("Perform Crop Classification", type="primary"):
         predictions = perform_inference(lon, lat, model, config, debug=True)
         m.add_data(predictions,
             layer_name = "Predictions",
@@ -77,8 +88,8 @@ def perform_inference_step():
     )
 
     # Show the POI on the map
-    poi_icon = Icon(color="red", prefix="fa", icon="crosshairs")
-    m.add_marker(location=[lat, lon], popup="POI", layer_name="POI", icon=poi_icon)
+    poi_icon = Icon(color="green", prefix="fa", icon="crosshairs")
+    m.add_marker(location=[lat, lon], popup="Selected Location", layer_name="POI", icon=poi_icon)
 
     # Display the map in the Streamlit app
     m.to_streamlit()

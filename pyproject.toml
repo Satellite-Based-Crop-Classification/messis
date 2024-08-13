@@ -48,6 +48,7 @@ localtileserver = "^0.10.3"
 streamlit-js-eval = "^0.1.7"
 scipy = "^1.14.0"
 mapclassify = "^2.8.0"
+geopy = "^2.4.1"
 
 
 [tool.poetry.group.dev.dependencies]
