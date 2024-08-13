@@ -227,4 +227,9 @@ def perform_inference(lon, lat, model, config, debug=False):
     # Convert the predictions to a GeoDataFrame
     gdf = crop_predictions_to_gdf(field_ids_data, label_data, majority_tier3_predictions, features_transform, features_crs, class_names)
 
+    # Simple GeoDataFrame with only the necessary columns
+    gdf = gdf[['prediction_class', 'target_class', 'correct', 'geometry']]
+    gdf.columns = ['Prediction', 'Target', 'Correct', 'geometry']
+    # gdf = gdf[gdf['Target'] != 'Background']
+
     return gdf

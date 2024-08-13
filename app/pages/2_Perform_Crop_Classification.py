@@ -69,11 +69,12 @@ def perform_inference_step():
     # Perform inference
     if st.sidebar.button("Perform Crop Classification", type="primary"):
         predictions = perform_inference(lon, lat, model, config, debug=True)
+
         m.add_data(predictions,
             layer_name = "Predictions",
-            column="correct",
+            column="Correct",
             add_legend=False,
-            style_function=lambda x: {"fillColor": "green" if x["properties"]["correct"] else "red", "color": "black", "weight": 0, "fillOpacity": 0.25},
+            style_function=lambda x: {"fillColor": "green" if x["properties"]["Correct"] else "red", "color": "black", "weight": 0, "fillOpacity": 0.25},
         )
         st.success("Inference completed!")
 
