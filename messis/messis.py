@@ -151,7 +151,6 @@ class HierarchicalClassifier(nn.Module):
             raise ValueError("The number of frames must be a multiple of 3, it is currently: ", num_frames)
         self.num_frames = num_frames
         self.hp, self.wp = img_size // patch_size, img_size // patch_size
-        self.head_channels = 256
         self.heads_spec = heads_spec
         self.dropout_p = dropout_p
         self.loss_ignore_background = loss_ignore_background
@@ -215,14 +214,15 @@ class HierarchicalClassifier(nn.Module):
                 num_classes = head_info['num_classes_to_predict']
                 loss_weight = head_info['loss_weight']
                 kernel_size = head_info.get('kernel_size', 3)
-                print(f"The KeRnEl size is: {kernel_size}")
+                num_convs = head_info.get('num_convs', 1)
+                num_channels = head_info.get('num_channels', 256)
                 self.total_classes += num_classes
 
                 self.heads[head_name] = HierarchicalFCNHead(
-                    in_channels=(self.embed_dim * self.num_frames) if head_count == 0 else self.head_channels,
-                    out_channels=self.head_channels,
+                    in_channels=(self.embed_dim * self.num_frames) if head_count == 0 else num_channels,
+                    out_channels=num_channels,
                     num_classes=num_classes,
-                    num_convs=head_info['num_convs'],
+                    num_convs=num_convs,
                     kernel_size=kernel_size,
                     dropout_p=self.dropout_p,
                     debug=self.debug
