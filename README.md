@@ -85,7 +85,7 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 4. Add the following line at the end of the file:
 
    ```bash
-   export PATH="/home2/yvo/.local/bin:$PATH"
+   export PATH="/home2/YOUR_USER/.local/bin:$PATH"
    ```
 
 5. To make the changes effective immediately in your current session, source the `.bashrc` file:
@@ -133,8 +133,8 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 12. Configure git user
 
     ```bash
-    git config --global user.name "Yvo Keller"
-    git config --global user.email "hi@yvo.ai"
+    git config --global user.name "Name Surname"
+    git config --global user.email "your.mail@example.com"
     ```
 
 ## Training
