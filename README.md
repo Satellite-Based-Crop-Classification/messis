@@ -34,14 +34,12 @@ poetry add <package>
 
 Setup DVC:
 
-1. Get a service account JSON file from Google Cloud Platform and place it in the `.dvc` directory.
-
-2. Initialize DVC:
+1. Initialize DVC:
 ```bash
-dvc remote modify gdrive --local gdrive_service_account_json_file_path .dvc/service-account.json
+dvc remote modify --local ssh password request-the-password-from-the-team
 ```
 
-3. Pull the data:
+2. Pull the data:
 ```bash
 dvc pull
 ```
@@ -111,12 +109,7 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 8. Configure DVC
 
     ```bash
-    scp ./service-account-yvo.json yvo@slurmlogin.cs.technik.fhnw.ch:/home2/yvo/code/messis/.dvc/
-    ```
-
-    ```bash
-    dvc remote modify gdrive gdrive_use_service_account true
-    dvc remote modify gdrive --local gdrive_service_account_json_file_path .dvc/service-account-yvo.json
+    dvc remote modify --local ssh password request-the-password-from-the-team
     ```
 
 9. Pull the data
