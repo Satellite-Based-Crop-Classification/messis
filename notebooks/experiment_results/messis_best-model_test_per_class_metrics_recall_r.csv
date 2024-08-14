@@ -1,0 +1,49 @@
+Tier 1,Tier 1 Recall,Tier 2,Tier 2 Recall,Tier 3,Tier 3 Recall
+Field crops (42.86%) [\textcolor{red}{-1.46}],96.74 ± 0.37,BroadLeafRowCrop (11.6%) [\textcolor{red}{-6.74}],88.36 ± 1.58,Beets (0.01%) [0.00],0.00 ± 0.00
+,,,,Field bean (0.16%) [\textcolor{red}{-16.61}],71.69 ± 1.93
+,,,,Hemp (0.03%) [\textcolor{red}{-3.10}],0.00 ± 0.00
+,,,,Legumes (0.05%) [\textcolor{red}{-56.63}],21.37 ± 32.47
+,,,,Linen (0.05%) [\textcolor{red}{-21.80}],32.60 ± 31.85
+,,,,Lupine (0.0%) [0.00],0.00 ± 0.00
+,,,,Mustard (0.0%) [nan],nan ± nan
+,,,,Peas (0.33%) [\textcolor{red}{-15.83}],66.57 ± 13.69
+,,,,Potatoes (1.72%) [\textcolor{red}{-20.61}],65.99 ± 2.91
+,,,,Soy (0.38%) [\textcolor{red}{-37.15}],50.25 ± 5.33
+,,,,Sugar_beets (4.43%) [\textcolor{red}{-0.54}],96.66 ± 0.45
+,,,,SummerRapeseed (0.02%) [0.00],0.00 ± 0.00
+,,,,Sunflowers (1.09%) [\textcolor{red}{-8.40}],84.40 ± 1.37
+,,,,Tobacco (0.03%) [\textcolor{red}{-48.50}],0.00 ± 0.00
+,,,,WinterRapeseed (3.31%) [\textcolor{red}{-3.49}],94.11 ± 1.45
+,,CropMix (0.09%) [\textcolor{red}{-16.70}],0.00 ± 0.00,MixedCrop (0.09%) [\textcolor{red}{-39.70}],0.00 ± 0.00
+,,LargeGrainCereal (10.68%) [\textcolor{red}{-1.16}],93.14 ± 0.85,Maize (10.6%) [\textcolor{red}{-1.13}],93.57 ± 0.76
+,,,,Sorghum (0.07%) [\textcolor{red}{-27.00}],0.00 ± 0.00
+,,SmallGrainCereal (17.56%) [\textcolor{red}{-0.54}],97.16 ± 0.33,Buckwheat (0.02%) [\textcolor{red}{-7.00}],0.00 ± 0.00
+,,,,EinkornWheat (0.16%) [\textcolor{red}{-33.62}],16.18 ± 9.70
+,,,,Grain (0.04%) [\textcolor{red}{-21.70}],0.00 ± 0.00
+,,,,Oat (0.21%) [\textcolor{red}{-50.25}],26.15 ± 14.94
+,,,,Rye (0.13%) [\textcolor{red}{-47.68}],20.42 ± 7.10
+,,,,Spelt (0.72%) [\textcolor{red}{-31.76}],52.24 ± 10.59
+,,,,SummerBarley (0.06%) [\textcolor{red}{-19.10}],7.00 ± 15.66
+,,,,SummerWheat (0.13%) [\textcolor{red}{-13.79}],24.21 ± 4.71
+,,,,Wheat (1.23%) [\textcolor{red}{-13.24}],26.16 ± 8.37
+,,,,WinterBarley (3.67%) [\textcolor{red}{-2.57}],93.83 ± 1.08
+,,,,WinterWheat (11.18%) [\textcolor{red}{-2.33}],93.37 ± 1.84
+,,VegetableCrop (2.93%) [\textcolor{red}{-7.21}],76.19 ± 5.03,Chicory (0.08%) [\textcolor{red}{-6.69}],24.11 ± 11.79
+,,,,Pumpkin (0.03%) [\textcolor{red}{-14.20}],0.00 ± 0.00
+,,,,Vegetables (2.83%) [\textcolor{red}{-5.68}],76.62 ± 4.98
+Forest (0.16%) [\textcolor{olive}{+30.97}],30.97 ± 13.51,Forest (0.16%) [\textcolor{olive}{+30.97}],30.97 ± 13.51,Forest (0.16%) [\textcolor{olive}{+29.37}],30.97 ± 13.51
+Grassland (54.47%) [\textcolor{red}{-0.41}],97.49 ± 0.25,BiodiversityArea (0.05%) [0.00],0.00 ± 0.00,Biodiversity encouragement area (0.05%) [0.00],0.00 ± 0.00
+,,Meadow (46.85%) [\textcolor{red}{-2.61}],92.69 ± 3.02,Meadow (46.85%) [\textcolor{red}{-2.21}],92.69 ± 3.02
+,,Pasture (7.58%) [\textcolor{red}{-12.06}],25.34 ± 12.76,Pasture (7.58%) [\textcolor{red}{-17.06}],25.34 ± 12.76
+Orchards (1.51%) [\textcolor{red}{-0.58}],49.02 ± 5.17,OrchardCrop (1.37%) [\textcolor{red}{-25.26}],51.04 ± 5.18,Apples (0.41%) [\textcolor{red}{-22.50}],46.80 ± 3.65
+,,,,Chestnut (0.0%) [nan],nan ± nan
+,,,,Hops (0.01%) [0.00],0.00 ± 0.00
+,,,,Pears (0.08%) [\textcolor{olive}{+18.20}],20.50 ± 14.28
+,,,,StoneFruit (0.09%) [\textcolor{red}{-16.40}],7.70 ± 8.93
+,,,,Vines (0.78%) [\textcolor{red}{-30.39}],51.81 ± 5.13
+,,TreeCrop (0.14%) [\textcolor{red}{-12.99}],7.91 ± 3.39,TreeCrop (0.14%) [\textcolor{red}{-29.29}],7.91 ± 3.39
+Special crops (1.0%) [\textcolor{olive}{+5.37}],13.67 ± 5.75,Berries (0.21%) [\textcolor{red}{-6.47}],12.33 ± 10.80,Berries (0.21%) [\textcolor{red}{-13.47}],12.33 ± 10.80
+,,Fallow (0.37%) [\textcolor{red}{-44.08}],21.72 ± 9.98,Fallow (0.37%) [\textcolor{red}{-48.58}],21.72 ± 9.98
+,,Gardens (0.0%) [\textcolor{red}{-1.00}],0.00 ± 0.00,Gardens (0.0%) [0.00],0.00 ± 0.00
+,,Hedge (0.41%) [\textcolor{olive}{+1.05}],2.05 ± 1.60,Hedge (0.41%) [\textcolor{olive}{+0.55}],2.05 ± 1.60
+,,Multiple (0.01%) [\textcolor{red}{-1.00}],0.00 ± 0.00,Multiple (0.01%) [0.00],0.00 ± 0.00
