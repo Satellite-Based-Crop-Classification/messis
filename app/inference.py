@@ -66,6 +66,9 @@ class InferenceDataLoader:
         with rasterio.open(path) as src:
             # Transform the coordinates from WGS84 to UTM (EPSG:32632)
             utm_x, utm_y = self.transformer.transform(lon, lat)
+            if self.debug:
+                print("Source Transform", src.transform)
+                print(f"UTM X: {utm_x}, UTM Y: {utm_y}")
             
             try:
                 px, py = rowcol(src.transform, utm_x, utm_y)
@@ -77,20 +80,23 @@ class InferenceDataLoader:
             
             half_window_size = self.window_size // 2
             
-            col_off = px - half_window_size
-            row_off = py - half_window_size
+            row_off = px - half_window_size
+            col_off = py - half_window_size
             
-            if col_off < 0:
-                col_off = 0
             if row_off < 0:
                 row_off = 0
-            if col_off + self.window_size > src.width:
-                col_off = src.width - self.window_size
-            if row_off + self.window_size > src.height:
-                row_off = src.height - self.window_size
+            if col_off < 0:
+                col_off = 0
+            if row_off + self.window_size > src.width:
+                row_off = src.width - self.window_size
+            if col_off + self.window_size > src.height:
+                col_off = src.height - self.window_size
             
             window = Window(col_off, row_off, self.window_size, self.window_size)
             window_transform = src.window_transform(window)
+            if self.debug:
+                print(f"Window: {window}")
+                print(f"Window Transform: {window_transform}")
             crs = src.crs
 
             return window, window_transform, crs
