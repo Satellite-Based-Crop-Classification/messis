@@ -10,6 +10,14 @@ Install poetry and the dependencies:
 poetry install
 ```
 
+Note if you're using Windows: You need to reinstall torch and torchvision with CUDA support. Change `cu121` to your CUDA version and check whether the versions of torch and torchvision match with the ones in the `pyproject.toml` file. For more details see: [https://github.com/python-poetry/poetry/issues/6409](https://github.com/python-poetry/poetry/issues/6409)
+
+```bash
+poetry shell
+pip install torch==2.3.0 --index-url https://download.pytorch.org/whl/cu121 -U
+pip install torchvision==0.18.0 --index-url https://download.pytorch.org/whl/cu121 -U
+```
+
 Make sure you set VSCode Setting `python.venvPath` to your poetry venv path, so that you can select the virtual environment in VSCode.
 
 To enter the virtual environment:
@@ -26,14 +34,12 @@ poetry add <package>
 
 Setup DVC:
 
-1. Get a service account JSON file from Google Cloud Platform and place it in the `.dvc` directory.
-
-2. Initialize DVC:
+1. Initialize DVC:
 ```bash
-dvc remote modify gdrive --local gdrive_service_account_json_file_path .dvc/service-account.json
+dvc remote modify --local ssh password request-the-password-from-the-team
 ```
 
-3. Pull the data:
+2. Pull the data:
 ```bash
 dvc pull
 ```
@@ -61,13 +67,13 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 1. Clone Repo
 
     ```bash
-    srun --partition top6 git clone --recurse-submodules -j8 https://<PAT>@github.com/Satellite-Based-Crop-Classification/messis.git
+    srun --partition performance git clone  https://github.com/Satellite-Based-Crop-Classification/messis.git
     ```
 
 2. Install Poetry
 
     ```bash
-    srun --partition top6 curl -sSL https://install.python-poetry.org | python3 -
+    srun --partition performance curl -sSL https://install.python-poetry.org | python3 -
     ```
 
 3. Open the `.bashrc` file in a text editor, such as nano or vim. For example:
@@ -79,7 +85,7 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 4. Add the following line at the end of the file:
 
    ```bash
-   export PATH="/home2/yvo/.local/bin:$PATH"
+   export PATH="/home2/YOUR_USER/.local/bin:$PATH"
    ```
 
 5. To make the changes effective immediately in your current session, source the `.bashrc` file:
@@ -91,7 +97,7 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 6. Install the dependencies
 
     ```bash
-    srun --partition top6 poetry install
+    srun --partition performance poetry install
     ```
 
 7. Enter the virtual environment
@@ -103,18 +109,13 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 8. Configure DVC
 
     ```bash
-    scp ./service-account-yvo.json yvo@slurmlogin.cs.technik.fhnw.ch:/home2/yvo/code/messis/.dvc/
-    ```
-
-    ```bash
-    dvc remote modify gdrive gdrive_use_service_account true
-    dvc remote modify gdrive --local gdrive_service_account_json_file_path .dvc/service-account-yvo.json
+    dvc remote modify --local ssh password request-the-password-from-the-team
     ```
 
 9. Pull the data
 
     ```bash
-    srun --partition top6 dvc pull
+    srun --partition performance dvc pull
     ```
 
 10. Log in to W&B
@@ -132,8 +133,8 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 12. Configure git user
 
     ```bash
-    git config --global user.name "Yvo Keller"
-    git config --global user.email "hi@yvo.ai"
+    git config --global user.name "Name Surname"
+    git config --global user.email "your.mail@example.com"
     ```
 
 ## Training
@@ -229,7 +230,7 @@ To start the training, run `sbatch messis-lightning.sh` in the terminal of the S
 
     For SLURM (untested):
     ```bash
-    srun --partition top6 poetry run python -m debugpy --listen
+    srun --partition performance poetry run python -m debugpy --listen
     ```
 
 2. Launch the "Remote Attach" debug configuration in your VS Code (see `.vscode/launch.json`). VS Code will connect to the debug server on the remote server and you can debug as usual.
