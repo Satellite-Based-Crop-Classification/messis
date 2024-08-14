@@ -10,7 +10,7 @@ Install poetry and the dependencies:
 poetry install
 ```
 
-Note if you're using Windows: You need to reinstall torch and torchvision with CUDA support. Change `cu121` to your CUDA version and check whether the versions of torch and torchvision match with the ones in the `pyproject.toml` file.
+Note if you're using Windows: You need to reinstall torch and torchvision with CUDA support. Change `cu121` to your CUDA version and check whether the versions of torch and torchvision match with the ones in the `pyproject.toml` file. For more details see: [https://github.com/python-poetry/poetry/issues/6409](https://github.com/python-poetry/poetry/issues/6409)
 
 ```bash
 poetry shell
