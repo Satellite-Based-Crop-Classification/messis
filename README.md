@@ -67,7 +67,7 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 1. Clone Repo
 
     ```bash
-    srun --partition top6 git clone --recurse-submodules -j8 https://<PAT>@github.com/Satellite-Based-Crop-Classification/messis.git
+    srun --partition performance git clone  https://github.com/Satellite-Based-Crop-Classification/messis.git
     ```
 
 2. Install Poetry
