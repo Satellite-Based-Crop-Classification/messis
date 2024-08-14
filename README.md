@@ -73,7 +73,7 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 2. Install Poetry
 
     ```bash
-    srun --partition top6 curl -sSL https://install.python-poetry.org | python3 -
+    srun --partition performance curl -sSL https://install.python-poetry.org | python3 -
     ```
 
 3. Open the `.bashrc` file in a text editor, such as nano or vim. For example:
@@ -97,7 +97,7 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 6. Install the dependencies
 
     ```bash
-    srun --partition top6 poetry install
+    srun --partition performance poetry install
     ```
 
 7. Enter the virtual environment
@@ -115,7 +115,7 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 9. Pull the data
 
     ```bash
-    srun --partition top6 dvc pull
+    srun --partition performance dvc pull
     ```
 
 10. Log in to W&B
@@ -230,7 +230,7 @@ To start the training, run `sbatch messis-lightning.sh` in the terminal of the S
 
     For SLURM (untested):
     ```bash
-    srun --partition top6 poetry run python -m debugpy --listen
+    srun --partition performance poetry run python -m debugpy --listen
     ```
 
 2. Launch the "Remote Attach" debug configuration in your VS Code (see `.vscode/launch.json`). VS Code will connect to the debug server on the remote server and you can debug as usual.
