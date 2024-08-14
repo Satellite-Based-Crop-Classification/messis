@@ -10,6 +10,14 @@ Install poetry and the dependencies:
 poetry install
 ```
 
+Note if you're using Windows: You need to reinstall torch and torchvision with CUDA support. Change `cu121` to your CUDA version and check whether the versions of torch and torchvision match with the ones in the `pyproject.toml` file.
+
+```bash
+poetry shell
+pip install torch==2.3.0 --index-url https://download.pytorch.org/whl/cu121 -U
+pip install torchvision==0.18.0 --index-url https://download.pytorch.org/whl/cu121 -U
+```
+
 Make sure you set VSCode Setting `python.venvPath` to your poetry venv path, so that you can select the virtual environment in VSCode.
 
 To enter the virtual environment:
