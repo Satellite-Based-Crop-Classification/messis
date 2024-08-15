@@ -38,17 +38,7 @@ lion-pytorch = "^0.2.2"
 torchview = "^0.2.6"
 kaleido = "0.2.1"
 latextable = "^1.0.1"
-streamlit = "^1.37.0"
-folium = "^0.17.0"
-streamlit-folium = "^0.22.0"
 dvc-ssh = "^4.1.1"
-leafmap = "^0.36.6"
-xarray = "^2024.7.0"
-localtileserver = "^0.10.3"
-streamlit-js-eval = "^0.1.7"
-scipy = "^1.14.0"
-mapclassify = "^2.8.0"
-geopy = "^2.4.1"
 
 
 [tool.poetry.group.dev.dependencies]
