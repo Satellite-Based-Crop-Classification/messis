@@ -1,9 +1,5 @@
 [core]
     remote = ssh
     autostage = true
-['remote "gdrive"']
-    url = gdrive://1mad-8igYCXzUPoA54obg1bqOnFe3LMfV
-    gdrive_acknowledge_abuse = true
-    gdrive_use_service_account = true
 ['remote "ssh"']
     url = ssh://u417010-sub4@u417010-sub4.your-storagebox.de:23
