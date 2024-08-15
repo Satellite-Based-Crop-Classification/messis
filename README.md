@@ -14,6 +14,39 @@ Additionally, Messis reduces the need for extensive labeled data by effectively 
 3. **Pretrained Weight Utilization:** Demonstrated significant performance improvement by leveraging Prithvi's pretrained weights, achieving a doubled F1 score compared to training from scratch.
 4. **Dataset:** Trained on the ZueriCrop 2.0 dataset, which features higher image dimension (224x224 pixels) compared to the original ZueriCrop dataset.
 
+Read our full report here: TODO
+Poster: TODO
+
+## Repository Structure
+
+The repository is structured as follows, with the most important files and directories highlighted:
+
+```markdown
+└── 📁messis
+    └── README.md
+    └── pyproject.toml [ℹ️ Poetry configuration file]
+    └── params.yaml [ℹ️ DVC configuration file]
+    └── model_training.ipynb [ℹ️ Jupyter notebook for training the model]
+    └── server-messis-lightning.sh [ℹ️ Script for training the model on a server with GPU]
+    └── slurm-messis-lightning.sh [ℹ️ SLURM script for training the model on a cluster]
+    └── .env.example [ℹ️ Example environment file]
+    └── 📁assets [ℹ️ Assets created for our report]
+    └── 📁data [ℹ️ The directory DVC uses to store data]
+    └── 📁messis [ℹ️ Python package for the Messis model]
+    └── 📁prithvi [ℹ️ Code for the Prithvi model by Jakubik et. al]
+    └── 📁notebooks [ℹ️ Various notebooks for exploration, experimentation and evaluation]
+    └── 📁src
+        └── .DS_Store
+        └── README.md
+        └── 📁assets [ℹ️ Assets used in the Gradio Dashboard]
+            └── ...
+            └── 📁chroma [ℹ️ ChromaDB Vector Store with all Chunks]
+            └── embedder.pkl [ℹ️ Embedder used for retrieval querying]
+        └── dashboard.py [ℹ️ Gradio Dashboard Script]
+        └── 📁flagged [ℹ️ Results flagged in Gradio]
+        └── tools.py
+```
+
 ## Usage
 
 Experience the Messis model firsthand by trying it out in our interactive [Huggingface Spaces Demo](https://huggingface.co/spaces/crop-classification/messis-demo).
