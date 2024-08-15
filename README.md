@@ -1,6 +1,24 @@
-# Messis
+# Messis - Crop Classification Model
 
-Hierarchical crop classification model for the Swiss cantons of Zurich and Thurgau, built upon the Prithvi-100M Geospatial model as backbone.
+`Messis` is a crop classification model for the agricultural landscapes of Switzerland. It is built upon the geospatial foundation model [Prithvi](https://huggingface.co/ibm-nasa-geospatial/Prithvi-100M), which was originally pre-trained on U.S. satellite data. Messis has been trained using our ZueriCrop 2.0 dataset, a collection of Sentinel-2 imagery combined with ground-truth crop labels that covers agricultural regions in Switzerland.
+
+<img src="./assets/messis.jpeg" alt="Messis" width="600">
+
+The Messis model leverages a three-tier hierarchical label structure, optimized for remote sensing tasks, to enhance its classification accuracy across different crop types. By adapting Prithvi to the specific challenges of Swiss agriculture—such as smaller field sizes and higher image resolutions by the Sentinel-2 satellites—Messis demonstrates the versatility of pretrained geospatial models in handling new downstream tasks.
+
+Additionally, Messis reduces the need for extensive labeled data by effectively utilizing Prithvi's pretrained weights. In evaluations, Messis achieved a notable F1 score of 34.8% across 48 crop classes.
+
+## Key Features
+1. **Adapted for High-Resolution Crop Classification:** Messis is fine-tuned from the Prithvi geospatial foundation model, originally trained on U.S. data, and optimized for high-resolution Sentinel-2 imagery specific to Swiss agricultural landscapes.
+2. **Leveraged Hierarchical Label Structure:** Utilizes a remote-sensing-focused hierarchical label structure, enabling more accurate classification across multiple levels of crop granularity.
+3. **Pretrained Weight Utilization:** Demonstrated significant performance improvement by leveraging Prithvi's pretrained weights, achieving a doubled F1 score compared to training from scratch.
+4. **Dataset:** Trained on the ZueriCrop 2.0 dataset, which features higher image dimension (224x224 pixels) compared to the original ZueriCrop dataset.
+
+## Usage
+
+Experience the Messis model firsthand by trying it out in our interactive [Huggingface Spaces Demo](https://huggingface.co/spaces/crop-classification/messis-demo).
+
+To learn how to load the model and perform inference, check the [source code](https://huggingface.co/spaces/crop-classification/messis-demo/tree/main) in our Huggingface Space.
 
 ## Setup
 
@@ -44,10 +62,9 @@ dvc remote modify --local ssh password request-the-password-from-the-team
 dvc pull
 ```
 
+## MMCV Environment Setup (optional)
 
-### MMCV Environment Setup (optional)
-
-Set up this environment to run Prithvi with the MMCV/MMSegmentation framework (see `prithvi` folder).
+Only set up this environment if you want to run Prithvi with the MMCV/MMSegmentation framework (see `prithvi` folder).
 
 This environment is as described in `hls-foundation-os`:
 
