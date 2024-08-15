@@ -2,7 +2,7 @@
 name = "messis"
 version = "0.1.0"
 description = "Temporal Hierarchical Crop Classification Model based on Prithvi"
-authors = ["Yvo Keller <hi@yvo.ai>"]
+authors = ["Yvo Keller <hi@yvo.ai>", "Florin Barbisch <florin.barbisch@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
