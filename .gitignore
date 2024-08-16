@@ -166,7 +166,7 @@ wandb/
 slurm/
 logs/
 hf_cache/
-archive/zueri-crop
+notebooks/zueri-crop
 
 *.ckpt
 *.output.ipynb
