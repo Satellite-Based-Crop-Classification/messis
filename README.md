@@ -15,8 +15,10 @@ Additionally, Messis reduces the need for extensive labeled data by effectively 
 3. **Pretrained Weight Utilization:** Demonstrated significant performance improvement by leveraging Prithvi's pretrained weights, achieving a doubled F1 score compared to training from scratch.
 4. **Dataset:** Trained on the ZueriCrop 2.0 dataset, which features higher image dimension (224x224 pixels) compared to the original ZueriCrop dataset.
 
-Read our full report here: TODO
-Poster: TODO
+## Documentation
+
+- The poster for our model can be found [here](./assets/Poster.pdf).
+- Read our full report here [here](./assets/Report.pdf).
 
 ## Repository Structure
 
@@ -33,14 +35,14 @@ The repository is structured as follows, with the most important files and direc
     └── .env.example [ℹ️ Example environment file]
     └── 📁assets [ℹ️ Assets created for our report]
     └── 📁data [ℹ️ The directory DVC uses to store data]
-    └── 📁messis [ℹ️ Implementation of the Messis model]
-    └── 📁prithvi [ℹ️ Code for the Prithvi model by Jakubik et. al]
+    └── 📁messis [ℹ️ Full implementation of the Messis model]
+    └── 📁prithvi [ℹ️ Code for the Prithvi model, adapted from https://github.com/NASA-IMPACT/hls-foundation-os/]
     └── 📁notebooks [ℹ️ Various notebooks for exploration, experimentation and evaluation]
 ```
 
 ## Usage
 
-Experience the Messis model firsthand by trying it out in our interactive [Huggingface Spaces Demo](https://huggingface.co/spaces/crop-classification/messis-demo).
+Experience the Messis model firsthand by trying it out in our interactive [Hugging Face Spaces Demo](https://huggingface.co/spaces/crop-classification/messis-demo).
 
 To learn how to load the model and perform inference, check the [source code](https://huggingface.co/spaces/crop-classification/messis-demo/tree/main) in our Huggingface Space.
 
