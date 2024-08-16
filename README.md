@@ -18,7 +18,7 @@ Additionally, Messis reduces the need for extensive labeled data by effectively 
 ## Documentation
 
 - The poster for our model can be found [here](./assets/Poster.pdf).
-- Read our full report here [here](./assets/Report.pdf).
+- Read our full report here [here](./assets/BAT-Report_Satellite-based-Crop-Classification.pdf).
 
 ## Repository Structure
 
