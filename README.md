@@ -9,6 +9,7 @@ The Messis model leverages a three-tier hierarchical label structure, optimized 
 Additionally, Messis reduces the need for extensive labeled data by effectively utilizing Prithvi's pretrained weights. In evaluations, Messis achieved a notable F1 score of 34.8% across 48 crop classes.
 
 ## Key Features
+
 1. **Adapted for High-Resolution Crop Classification:** Messis is fine-tuned from the Prithvi geospatial foundation model, originally trained on U.S. data, and optimized for high-resolution Sentinel-2 imagery specific to Swiss agricultural landscapes.
 2. **Leveraged Hierarchical Label Structure:** Utilizes a remote-sensing-focused hierarchical label structure, enabling more accurate classification across multiple levels of crop granularity.
 3. **Pretrained Weight Utilization:** Demonstrated significant performance improvement by leveraging Prithvi's pretrained weights, achieving a doubled F1 score compared to training from scratch.
@@ -32,19 +33,9 @@ The repository is structured as follows, with the most important files and direc
     └── .env.example [ℹ️ Example environment file]
     └── 📁assets [ℹ️ Assets created for our report]
     └── 📁data [ℹ️ The directory DVC uses to store data]
-    └── 📁messis [ℹ️ Python package for the Messis model]
+    └── 📁messis [ℹ️ Implementation of the Messis model]
     └── 📁prithvi [ℹ️ Code for the Prithvi model by Jakubik et. al]
     └── 📁notebooks [ℹ️ Various notebooks for exploration, experimentation and evaluation]
-    └── 📁src
-        └── .DS_Store
-        └── README.md
-        └── 📁assets [ℹ️ Assets used in the Gradio Dashboard]
-            └── ...
-            └── 📁chroma [ℹ️ ChromaDB Vector Store with all Chunks]
-            └── embedder.pkl [ℹ️ Embedder used for retrieval querying]
-        └── dashboard.py [ℹ️ Gradio Dashboard Script]
-        └── 📁flagged [ℹ️ Results flagged in Gradio]
-        └── tools.py
 ```
 
 ## Usage
@@ -90,7 +81,7 @@ Setup DVC:
 dvc remote modify --local ssh password request-the-password-from-the-team
 ```
 
-2. Pull the data:
+1. Pull the data:
 ```bash
 dvc pull
 ```
@@ -110,7 +101,7 @@ pip install -U openmim
 mim install mmcv-full==1.6.2
 ```
 
-Next, download the Pritvhi model using the [download](./prithvi/model/download.ipynb) notebook in the `prithvi/model` directory.
+Next, download the Pritvhi model using the `download_prithvi_100M.ipynb` notebook in the `prithvi/model` directory.
 
 ##  SLURM Setup
 
@@ -190,6 +181,7 @@ Next, download the Pritvhi model using the [download](./prithvi/model/download.i
 ## Training
 
 Resources for optimizing the training:
+
 - https://archive.is/ELPqJ
 - https://lightning.ai/docs/pytorch/stable/accelerators/gpu_intermediate.html
 - PyTorch Lightning SLURM: https://lightning.ai/docs/pytorch/stable/clouds/cluster_advanced.html
@@ -217,6 +209,7 @@ When you want to stop the job, you can kill the entire process group:
 ### Train on SLURM
 
 Slurm Commands:
+
 - Start SLURM Training Job: `sbatch slurm-messis-lightning.sh`
 - Show SLURM Jobs: `squeue`
 - Show SLURM Cluster nodes with GPU Info: `scontrol show nodes`
